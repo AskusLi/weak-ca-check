@@ -225,6 +225,25 @@ mod tests {
     }
 
     #[test]
+    fn explicit_default_count_is_capped_at_a_finite_seed_domain() -> Result<()> {
+        let plan = build(Selection {
+            suite: Suite::Hashes,
+            curves: vec![Curve::P384],
+            hashes: vec![Hash::Sha256],
+            encodings: vec![SeedEncoding::Decimal],
+            seed_patterns: vec![SeedPattern::RepeatByte],
+            patterns: vec![],
+            count: 257,
+            class_counts: vec![],
+            tag_bits: 24,
+        })?;
+        assert_eq!(plan.recipes.len(), 1);
+        assert_eq!(plan.recipes[0].count, 256);
+        assert_eq!(plan.candidate_seeds, 256);
+        Ok(())
+    }
+
+    #[test]
     fn invalid_or_unused_overrides_fail_before_generation() {
         for class in [
             "seed:repeat-byte=257",

@@ -4,33 +4,50 @@ An offline Rust tool for checking public X.509 certificates against explicitly
 defined weak elliptic-curve key candidates. One binary and one database file
 cover P-256, P-384 and P-521. Certificates can come from any CA.
 
-## Why we are releasing this
+## Why this research matters
 
 A certificate can contain a correctly encoded public key whose private scalar
 is a small number or comes from a predictable generator. Checking a certificate's
 signature or trust chain does not answer that question. Those weak keys can be
 tested by independently reproducing candidate public points.
 
-We started with archived CA certificates and known weak-key controls, then
-expanded the checks to the public CCADB inventory. We are releasing the checker,
-exact candidate recipes and precomputed database so other people can reproduce
-the checks, inspect the method, and test their own certificates. Precomputation
-can be shared rather than repeated by every user. The database records both
-what was searched and how to regenerate it.
+The checker was developed against archived CA certificates and known weak-key
+controls, then expanded to the public CCADB inventory. Reproducible checks can
+help researchers and trust-store operators identify weak CA keys and compare
+coverage across issuers. The database records what was searched and how to
+regenerate it.
 
 This is bounded research. A match establishes that the complete public key can
 be reproduced by a tested candidate. It does not establish how its owner
 originally generated the key. No match rules out only the listed recipes and
 ranges; it does not prove sufficient entropy or a secure random generator.
 The [dated CA scan report](docs/CURRENT_CA_SCAN.md) records the observed results
-and coverage limits. We do not infer earlier incidents from unrelated revocations.
+and coverage limits. On 2026-10-21, the full inventory scan reproduced eight
+historical weak P-384 keys already reported as compromised and revoked, and
+found no matches in the time-valid, non-revoked group. Mozilla and Chrome have
+publicly described protections for the eMudhra incident and Chrome reported no
+other instances within its own root-store boundary ([Mozilla security-policy
+thread](https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/0R3XLJL6FuE/m/Kp1v6CPuAAAJ)).
+
+## Publication status
+
+This working tree is a local research build, not a public release. A verified
+match can reveal the corresponding private scalar: the scan report contains
+recovery evidence, and a database record plus its recipe can reproduce that
+scalar for a matching certificate. The full report and database remain local.
+For now, public discussion should use aggregate scan results and the synthetic
+fixtures. Defer publishing the source, binary or unified database until affected
+CA and trust-store programs have reviewed the findings and the release has had
+an independent safety review.
 
 ## Check a certificate
 
-Extract the binary for your platform and download `all-1m-v1.wkdb` alongside it:
+For local research, build the checker and unified database from source:
 
 ```sh
-./weak-ca-check check --cert my-ca.pem --db all-1m-v1.wkdb \
+cargo build --release --locked
+./target/release/weak-ca-check build-db --output dist/all-1m-v1.wkdb
+./target/release/weak-ca-check check --cert my-ca.pem --db dist/all-1m-v1.wkdb \
   --output result.json
 ```
 
@@ -100,6 +117,13 @@ collisions cannot establish findings. The unified database embeds the original p
 their recipes and integrity checksums. Checksums detect corruption; they do
 not authenticate a publisher or prove a third-party table is complete. Rebuild
 from the recipes to verify its contents.
+
+The database is a key-recovery aid for certificates whose public points match
+its candidates. A matching record provides the recipe and seed index needed to
+derive the candidate scalar. Treat the database and its manifest as sensitive
+research artifacts; do not redistribute them before coordinated disclosure and
+an explicit release decision are complete. See the
+[database safety notice](docs/RELEASE_NOTICE.md).
 
 The [database format](docs/DATABASE.md) and [pack format](docs/FORMAT.md) are
 specified for independent implementations. Existing `.wkp` packs remain usable

@@ -39,11 +39,12 @@ jobs:
           cp "target/$TARGET/release/$EXE" "dist/$EXE"
           cp README.md LICENSE dist/
           cp -R docs dist/
+          cp docs/RELEASE_NOTICE.md dist/RELEASE_NOTICE.md
           cd dist
           if [[ "$EXE" == *.exe ]]; then
-            7z a "weak-ca-check-$TARGET.zip" "$EXE" README.md LICENSE docs THIRD_PARTY_NOTICES.txt
+            7z a "weak-ca-check-$TARGET.zip" "$EXE" README.md LICENSE docs RELEASE_NOTICE.md THIRD_PARTY_NOTICES.txt
           else
-            tar -czf "weak-ca-check-$TARGET.tar.gz" "$EXE" README.md LICENSE docs THIRD_PARTY_NOTICES.txt
+            tar -czf "weak-ca-check-$TARGET.tar.gz" "$EXE" README.md LICENSE docs RELEASE_NOTICE.md THIRD_PARTY_NOTICES.txt
           fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -60,12 +61,14 @@ jobs:
       - run: cargo +1.94.0 test --release --locked
       - run: target/release/weak-ca-check build-db --output dist/all-1m-v1.wkdb
       - run: target/release/weak-ca-check inspect dist/all-1m-v1.wkdb > dist/all-1m-v1.manifest.json
+      - run: cp docs/RELEASE_NOTICE.md dist/RELEASE_NOTICE.md
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: database
           path: |
             dist/all-1m-v1.wkdb
             dist/all-1m-v1.manifest.json
+            dist/RELEASE_NOTICE.md
   publish:
     needs: [binaries, database]
     runs-on: ubuntu-24.04
@@ -84,5 +87,5 @@ jobs:
         run: |
           cd artifacts
           sha256sum *.tar.gz *.zip *.wkdb *.manifest.json > SHA256SUMS
-          gh release create "$TAG" ./* --draft --title "$TAG" --generate-notes
+          gh release create "$TAG" ./* --draft --title "$TAG" --notes-file RELEASE_NOTICE.md
           gh release edit "$TAG" --draft=false

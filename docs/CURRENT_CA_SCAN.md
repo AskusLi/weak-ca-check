@@ -66,12 +66,40 @@ SHA-256: a8bf8933dc2b5134636ed7ad237a3be3855a2ae7ede4e6fb4c56822defb13646
 
 The certificate PEM reports were fetched for the 1990s, 2000s, 2010s and 2020s,
 covering every issuance decade in that inventory. The Rust loader verified the
-certificate DER SHA-256 fingerprints against the metadata. Source timestamps,
-hashes, validity, record status and findings are preserved in the local
-research report. To refresh the inventory, download a new snapshot and follow
-the current README to join the metadata and PEM reports before running the
-checker. The current group depends on the run time. This scan covers public
-CCADB records, not all undisclosed or private CA certificates worldwide.
+certificate DER SHA-256 fingerprints against the metadata. The exact PEM export
+identities use the base URL
+`https://ccadb.my.salesforce-sites.com/ccadb/`; the joined input hash and
+export hashes used for this scan are:
+
+| Input | CCADB resource | SHA-256 |
+| --- | --- | --- |
+| `certificate-pems-1990.csv` | `AllCertificatePEMsCSVFormat?NotBeforeDecade=1990` | `f244b6d3003d595b7c1402ee9dcc7c407640a284af30cdb5c3b7e501596a279b` |
+| `certificate-pems-2000.csv` | `AllCertificatePEMsCSVFormat?NotBeforeDecade=2000` | `eb204da808dca9324bffe1dfcd0e69b756be2dbea1355ba37438728e83dba6cd` |
+| `certificate-pems-2010.csv` | `AllCertificatePEMsCSVFormat?NotBeforeDecade=2010` | `fc1e70c702673037ab90d14c3824f13373373af0fdc7c75b12688903a770a4c3` |
+| `certificate-pems-2020.csv` | `AllCertificatePEMsCSVFormat?NotBeforeDecade=2020` | `76826d31419b6ba1746cac222010c91a54ed8d3b205d560b0f8da6a20880b3f5` |
+| joined native input | `10a52b4d6caf5e818d21feba47c012b425baa8d0cafd49f77421371b0882df6f` |
+
+The report's exact classification time was `2026-10-21T17:53:28Z`
+(`time_unix_seconds=1792605208`). Recreate the joined input and run with the
+same source files and database using:
+
+```sh
+weak-ca-check --threads 8 import-ccadb \
+  --inventory all-certificate-records-v5.csv \
+  --pem certificate-pems-1990.csv \
+  --pem certificate-pems-2000.csv \
+  --pem certificate-pems-2010.csv \
+  --pem certificate-pems-2020.csv \
+  --output joined-native.csv
+weak-ca-check --threads 8 check --ccadb joined-native.csv \
+  --db all-1m-v1.wkdb --output current-ca-results.json
+```
+
+The full per-certificate report is deliberately kept local because its match
+evidence can reproduce private scalars. The source timestamps and hashes are
+recorded above so the aggregate result can be replayed without publishing that
+evidence. The current group depends on run time. This scan covers public CCADB
+records, not all undisclosed or private CA certificates worldwide.
 
 Zero findings in the current group rule out only the reported scalar interval
 and exact recipes. They do not prove adequate key entropy or secure random

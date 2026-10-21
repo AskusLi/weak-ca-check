@@ -30,9 +30,11 @@ both 1 and 16843009.
 
 The `u32be` and `u32le` encodings cap pattern domains where a numeric value
 would not fit in 32 bits. `u64be` and `u64le` use all eight bytes, including
-leading zero bytes. An explicit `--count` or `--class-count` above a finite
-domain is rejected; it is never silently truncated. The default one-million
-budget therefore enumerates every value in each finite seed class.
+leading zero bytes. The `--count` budget is capped at each finite domain, even
+when explicitly supplied, so it never requests duplicate values beyond that
+class's limit. `--class-count` overrides are strict and reject values above a
+finite domain. The default one-million budget therefore enumerates every value
+in each finite seed class.
 
 These classes are reproducible search hypotheses. They do not emulate a
 specific random-number generator and do not establish that a key came from one

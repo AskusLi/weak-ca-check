@@ -672,4 +672,36 @@ mod tests {
         fs::remove_dir_all(dir)?;
         Ok(())
     }
+
+    #[test]
+    fn explicit_cli_count_caps_a_finite_seed_domain() -> Result<()> {
+        let dir = std::env::temp_dir().join(format!("weak-ca-finite-count-{}", std::process::id()));
+        fs::create_dir_all(&dir)?;
+        let db_path = dir.join("finite-count.wkdb");
+        let args = Args::try_parse_from([
+            "weak-ca-check",
+            "build-db",
+            "--suite",
+            "hashes",
+            "--curve",
+            "p384",
+            "--hash",
+            "sha256",
+            "--seed-pattern",
+            "repeat-byte",
+            "--count",
+            "257",
+            "--output",
+            db_path.to_str().unwrap(),
+        ])?;
+        assert_eq!(run(args)?, 0);
+        let packs = read_packs(PackInputs {
+            db: vec![db_path],
+            ..PackInputs::default()
+        })?;
+        assert_eq!(packs.len(), 1);
+        assert_eq!(packs[0].header.recipe.count, 256);
+        fs::remove_dir_all(dir)?;
+        Ok(())
+    }
 }
