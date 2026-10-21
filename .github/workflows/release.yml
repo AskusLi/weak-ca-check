@@ -58,14 +58,14 @@ jobs:
       - run: rustup toolchain install 1.94.0 --profile minimal
       - run: cargo +1.94.0 build --release --locked
       - run: cargo +1.94.0 test --release --locked
-      - run: target/release/weak-ca-check build-db --output dist/all-100k-v1.wkdb
-      - run: target/release/weak-ca-check inspect dist/all-100k-v1.wkdb > dist/all-100k-v1.manifest.json
+      - run: target/release/weak-ca-check build-db --output dist/all-1m-v1.wkdb
+      - run: target/release/weak-ca-check inspect dist/all-1m-v1.wkdb > dist/all-1m-v1.manifest.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: database
           path: |
-            dist/all-100k-v1.wkdb
-            dist/all-100k-v1.manifest.json
+            dist/all-1m-v1.wkdb
+            dist/all-1m-v1.manifest.json
   publish:
     needs: [binaries, database]
     runs-on: ubuntu-24.04

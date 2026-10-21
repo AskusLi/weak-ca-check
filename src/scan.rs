@@ -261,6 +261,8 @@ pub struct Evidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub seed_number: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pack_sha256: Option<String>,
 }
 
@@ -337,6 +339,7 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
                     small_scalar: Some(scalar),
                     recipe: None,
                     seed: None,
+                    seed_number: None,
                     pack_sha256: None,
                 });
             }
@@ -349,6 +352,12 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
                         small_scalar: None,
                         recipe: Some(pack.header.recipe.clone()),
                         seed: Some(seed),
+                        seed_number: pack
+                            .header
+                            .recipe
+                            .hash
+                            .map(|_| pack.header.recipe.seed_number(seed))
+                            .transpose()?,
                         pack_sha256: Some(pack.sha256.clone()),
                     });
                 }

@@ -263,14 +263,98 @@ pub enum SeedEncoding {
 }
 
 impl SeedEncoding {
-    pub fn encode(self, seed: u32) -> Vec<u8> {
-        match self {
+    pub fn encode(self, seed: u64) -> Result<Vec<u8>> {
+        Ok(match self {
             Self::Decimal => seed.to_string().into_bytes(),
-            Self::U32be => seed.to_be_bytes().to_vec(),
-            Self::U32le => seed.to_le_bytes().to_vec(),
-            Self::U64be => u64::from(seed).to_be_bytes().to_vec(),
-            Self::U64le => u64::from(seed).to_le_bytes().to_vec(),
+            Self::U32be => u32::try_from(seed)
+                .context("seed number exceeds u32 encoding")?
+                .to_be_bytes()
+                .to_vec(),
+            Self::U32le => u32::try_from(seed)
+                .context("seed number exceeds u32 encoding")?
+                .to_le_bytes()
+                .to_vec(),
+            Self::U64be => seed.to_be_bytes().to_vec(),
+            Self::U64le => seed.to_le_bytes().to_vec(),
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum SeedPattern {
+    Counter,
+    RepeatByte,
+    RepeatU16be,
+    SingleBit,
+    LowOnes,
+    RepeatDigit,
+    DigitWalk,
+}
+
+impl SeedPattern {
+    pub const ALL: [Self; 7] = [
+        Self::Counter,
+        Self::RepeatByte,
+        Self::RepeatU16be,
+        Self::SingleBit,
+        Self::LowOnes,
+        Self::RepeatDigit,
+        Self::DigitWalk,
+    ];
+
+    pub fn limit(self, encoding: SeedEncoding) -> u64 {
+        let narrow = matches!(encoding, SeedEncoding::U32be | SeedEncoding::U32le);
+        match self {
+            Self::Counter => u64::from(u32::MAX) + 1,
+            Self::RepeatByte => 256,
+            Self::RepeatU16be => 65536,
+            Self::SingleBit | Self::LowOnes => {
+                if narrow {
+                    32
+                } else {
+                    64
+                }
+            }
+            Self::RepeatDigit => {
+                if narrow {
+                    4
+                } else {
+                    10
+                }
+            }
+            Self::DigitWalk => {
+                if narrow {
+                    19
+                } else {
+                    20
+                }
+            }
         }
+    }
+
+    pub fn value(self, index: u32) -> Result<u64> {
+        ensure!(
+            u64::from(index) < self.limit(SeedEncoding::Decimal),
+            "seed-pattern index outside its domain"
+        );
+        Ok(match self {
+            Self::Counter => u64::from(index),
+            Self::RepeatByte => u64::from(index) * 0x01010101,
+            Self::RepeatU16be => u64::from(index) * 0x00010001,
+            Self::SingleBit => 1u64 << index,
+            Self::LowOnes => u64::MAX >> (63 - index),
+            Self::RepeatDigit => u64::from(index) * 1_111_111_111,
+            Self::DigitWalk => {
+                let length = index % 10 + 1;
+                let mut value = 0;
+                for i in 0..length {
+                    let digit = if index < 10 { (i + 1) % 10 } else { 9 - i };
+                    value = value * 10 + u64::from(digit);
+                }
+                value
+            }
+        })
     }
 }
 
@@ -282,6 +366,8 @@ pub struct Recipe {
     pub hash: Option<Hash>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub encoding: Option<SeedEncoding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed_pattern: Option<SeedPattern>,
     pub mapping: String,
     pub start: u32,
     pub count: u64,
@@ -297,6 +383,7 @@ impl Recipe {
             curve,
             hash: None,
             encoding: None,
+            seed_pattern: None,
             mapping: pattern.mapping().into(),
             start,
             count,
@@ -306,6 +393,8 @@ impl Recipe {
     pub fn evidence_kind(&self) -> &'static str {
         if self.pattern().is_some() {
             "pattern-recipe"
+        } else if self.seed_pattern.is_some() {
+            "hash-seed-pattern-recipe"
         } else {
             "hash-counter-recipe"
         }
@@ -314,8 +403,8 @@ impl Recipe {
     pub fn validate(&self) -> Result<()> {
         let limit = if let Some(pattern) = self.pattern() {
             ensure!(
-                self.hash.is_none() && self.encoding.is_none(),
-                "pattern recipes cannot specify a hash or encoding"
+                self.hash.is_none() && self.encoding.is_none() && self.seed_pattern.is_none(),
+                "scalar pattern recipes cannot specify hash seed fields"
             );
             pattern.limit(self.curve)
         } else {
@@ -327,7 +416,9 @@ impl Recipe {
                 self.hash.is_some() && self.encoding.is_some(),
                 "hash recipes require hash and encoding"
             );
-            u64::from(u32::MAX) + 1
+            self.seed_pattern
+                .unwrap_or(SeedPattern::Counter)
+                .limit(self.encoding.context("hash recipe encoding")?)
         };
         ensure!(self.count > 0, "count must be positive");
         ensure!(
@@ -344,7 +435,13 @@ impl Recipe {
             && u64::from(seed) < u64::from(self.start) + self.count
     }
 
-    pub fn scalar(&self, seed: u32, order: &BigUint) -> Option<BigUint> {
+    pub fn seed_number(&self, index: u32) -> Result<u64> {
+        self.seed_pattern
+            .unwrap_or(SeedPattern::Counter)
+            .value(index)
+    }
+
+    pub fn scalar(&self, seed: u32, order: &BigUint) -> Result<Option<BigUint>> {
         let scalar = if let Some(pattern) = self.pattern() {
             match pattern {
                 Pattern::AllOnesMinusCounter => {
@@ -369,17 +466,19 @@ impl Recipe {
             }
         } else {
             BigUint::from_bytes_be(
-                &self
-                    .hash
-                    .expect("validated hash")
-                    .digest(&self.encoding.expect("validated encoding").encode(seed)),
+                &self.hash.context("hash recipe hash")?.digest(
+                    &self
+                        .encoding
+                        .context("hash recipe encoding")?
+                        .encode(self.seed_number(seed)?)?,
+                ),
             ) % order
         };
-        (!scalar.is_zero()).then_some(scalar)
+        Ok((!scalar.is_zero()).then_some(scalar))
     }
 
     pub fn point(&self, seed: u32) -> Result<Option<Vec<u8>>> {
-        self.scalar(seed, &self.curve.order())
+        self.scalar(seed, &self.curve.order())?
             .map(|d| self.curve.point(&d))
             .transpose()
     }
@@ -446,6 +545,7 @@ mod tests {
                 curve: serde_json::from_value(vector["curve"].clone())?,
                 hash: Some(serde_json::from_value(vector["hash"].clone())?),
                 encoding: Some(serde_json::from_value(vector["encoding"].clone())?),
+                seed_pattern: None,
                 mapping: "digest-be-mod-order-v1".into(),
                 start: 0,
                 count: 100_000,
@@ -470,11 +570,78 @@ mod tests {
     }
 
     #[test]
+    fn seed_number_patterns_match_defined_values_and_binary_encodings() -> Result<()> {
+        let cases = [
+            (SeedPattern::Counter, 42, 42),
+            (SeedPattern::RepeatByte, 1, 0x01010101),
+            (SeedPattern::RepeatU16be, 0x1234, 0x12341234),
+            (SeedPattern::SingleBit, 63, 1u64 << 63),
+            (SeedPattern::LowOnes, 63, u64::MAX),
+            (SeedPattern::RepeatDigit, 9, 9_999_999_999),
+            (SeedPattern::DigitWalk, 9, 1_234_567_890),
+            (SeedPattern::DigitWalk, 19, 9_876_543_210),
+        ];
+        for (pattern, index, expected) in cases {
+            assert_eq!(pattern.value(index)?, expected, "{pattern:?}/{index}");
+        }
+        assert_eq!(SeedEncoding::Decimal.encode(16_843_009)?, b"16843009");
+        assert_eq!(SeedEncoding::U32be.encode(0x01020304)?, [1, 2, 3, 4]);
+        assert_eq!(SeedEncoding::U32le.encode(0x01020304)?, [4, 3, 2, 1]);
+        assert_eq!(
+            SeedEncoding::U64be.encode(1u64 << 63)?,
+            [0x80, 0, 0, 0, 0, 0, 0, 0]
+        );
+        assert!(SeedEncoding::U32be.encode(u64::from(u32::MAX) + 1).is_err());
+        assert_eq!(SeedPattern::SingleBit.limit(SeedEncoding::U32be), 32);
+        assert_eq!(SeedPattern::SingleBit.limit(SeedEncoding::U64le), 64);
+        assert_eq!(SeedPattern::RepeatDigit.limit(SeedEncoding::U32le), 4);
+        assert_eq!(SeedPattern::DigitWalk.limit(SeedEncoding::U32be), 19);
+        Ok(())
+    }
+
+    #[test]
+    fn seed_pattern_hash_recipes_match_independent_points_and_packs() -> Result<()> {
+        let vectors: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/seed-pattern-vectors.json"))?;
+        for vector in vectors.as_array().unwrap() {
+            let curve: Curve = serde_json::from_value(vector["curve"].clone())?;
+            let hash: Hash = serde_json::from_value(vector["hash"].clone())?;
+            let encoding: SeedEncoding = serde_json::from_value(vector["encoding"].clone())?;
+            let seed_pattern: SeedPattern = serde_json::from_value(vector["seed_pattern"].clone())?;
+            let seed = vector["seed"].as_u64().unwrap() as u32;
+            let recipe = Recipe {
+                curve,
+                hash: Some(hash),
+                encoding: Some(encoding),
+                seed_pattern: (seed_pattern != SeedPattern::Counter).then_some(seed_pattern),
+                mapping: "digest-be-mod-order-v1".into(),
+                start: seed,
+                count: 1,
+            };
+            recipe.validate()?;
+            assert_eq!(
+                recipe.seed_number(seed)?,
+                vector["seed_number"].as_u64().unwrap()
+            );
+            assert_eq!(
+                hex::encode(encoding.encode(recipe.seed_number(seed)?)?),
+                vector["input_hex"].as_str().unwrap()
+            );
+            let point = recipe.point(seed)?.unwrap();
+            assert_eq!(hex::encode(&point), vector["point"].as_str().unwrap());
+            let pack = crate::pack::Pack::from_bytes(crate::pack::generate(recipe, 3)?)?;
+            assert_eq!(pack.lookup(&point)?.0, vec![seed]);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn range_validation_rejects_overflow_and_unknown_mappings() {
         let mut r = Recipe {
             curve: Curve::P384,
             hash: Some(Hash::Sha256),
             encoding: Some(SeedEncoding::Decimal),
+            seed_pattern: None,
             mapping: "digest-be-mod-order-v1".into(),
             start: u32::MAX,
             count: 1,

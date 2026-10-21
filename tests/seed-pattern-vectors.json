@@ -1,0 +1,252 @@
+[
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "counter",
+    "seed": 42,
+    "seed_number": 42,
+    "input_hex": "3432",
+    "point": "02e6544f88dee4876bb2381e128a6fe7e69595f10af62abc6fdab6b7611fe0c6b0"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-byte",
+    "seed": 1,
+    "seed_number": 16843009,
+    "input_hex": "3136383433303039",
+    "point": "0349a0b2c950b067d59ad991127c45bb4a3f43065241fcf9d344c7082bb67c8fac"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-u16be",
+    "seed": 4660,
+    "seed_number": 305402420,
+    "input_hex": "333035343032343230",
+    "point": "02eb8f1e3281751b6f7e5bacd39c9a4d57776d14bf8c1041181e037968d82cc4b3"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "single-bit",
+    "seed": 7,
+    "seed_number": 128,
+    "input_hex": "313238",
+    "point": "03f2705bfe9e989aeb8b14e4a1d49f3c5f10188f2419731e9e7ea6287f8eee8f21"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "low-ones",
+    "seed": 7,
+    "seed_number": 255,
+    "input_hex": "323535",
+    "point": "039cbfceba4aef6757ab7e81bdfffafc4f08f27e41e48af2b6ad42f6d4c6ad3f00"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-digit",
+    "seed": 7,
+    "seed_number": 7777777777,
+    "input_hex": "37373737373737373737",
+    "point": "03b5145600ba3cdcce65f4228483941be1d1c1d148932bd6472d62fe0255a25189"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "digit-walk",
+    "seed": 12,
+    "seed_number": 987,
+    "input_hex": "393837",
+    "point": "0327c5c9eea62df54f39555f78742de2ade854bea766dd80397d54b0353133c935"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "counter",
+    "seed": 42,
+    "seed_number": 42,
+    "input_hex": "3432",
+    "point": "02bf0c977d5a886de312762dac4305e6d4074a61d61ea29d6ee8c26a64443dbc130c379b1d79e5c5f58a7006590625049e"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-byte",
+    "seed": 1,
+    "seed_number": 16843009,
+    "input_hex": "3136383433303039",
+    "point": "02150c50d2d4f5f5b9aa83d3f0fcdf8d30cf74e26274e1b1bdea9aa7ec40080a37b98e01f52e0564f58e9a8f50413af660"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-u16be",
+    "seed": 4660,
+    "seed_number": 305402420,
+    "input_hex": "333035343032343230",
+    "point": "02e202570870e7ab11ea6aa51830c111dc9b107c7767c2a0c82ec0dc28a008d41724037d1e1268240d3ab81f039f9e6aa9"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "single-bit",
+    "seed": 7,
+    "seed_number": 128,
+    "input_hex": "313238",
+    "point": "02dfe8d68b4ab27792b93f724448763de74e4621c97d11c3a8522028e6517a24247a78e0b79200e5b71bc24cb309555525"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "low-ones",
+    "seed": 7,
+    "seed_number": 255,
+    "input_hex": "323535",
+    "point": "02f5cd13d033d4c67fdddd3f30ff2e97c87f6cc383fb0d6b2e5190f5c2438384f2a79c7caeed5d37a7c7567877bebcb64a"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-digit",
+    "seed": 7,
+    "seed_number": 7777777777,
+    "input_hex": "37373737373737373737",
+    "point": "0314673c4dd090e900a527e11f4b118486d8b35d26d2ab56e80cfa171b381927811b1b9216531ca494e139b8fa09ec6790"
+  },
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "digit-walk",
+    "seed": 12,
+    "seed_number": 987,
+    "input_hex": "393837",
+    "point": "036eb7c7f0bfc61762d79b467f9f94f6441a53a11cb7c830f2653c135e4b988fe29c6bf8f2c216a7041e5f0b6c4decb29f"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "counter",
+    "seed": 42,
+    "seed_number": 42,
+    "input_hex": "3432",
+    "point": "03014e32c4b8c0a0ed5704a47e2fac1aba15f99c10461a8f174793acd4211549652fa547606ac9bb69ed85becc32bfcbf12e4876551c796b82e9f4a4a62282e8bceebc"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-byte",
+    "seed": 1,
+    "seed_number": 16843009,
+    "input_hex": "3136383433303039",
+    "point": "0301a5728cacefc3a83224b6876fa9fbe4e0a362fd54abaf4562313a8025433cf14c5921c79ded2968572a363103aa19ac6e12ef0dc6eccf34b2a172ffd24ed00cdb32"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-u16be",
+    "seed": 4660,
+    "seed_number": 305402420,
+    "input_hex": "333035343032343230",
+    "point": "0200cc0030d7588f0bcbfe60e7ff12fab27b168e661f28fca643b2f6a3a66ffac56b2e7e4f61ef9b411d4df986ed444a2a59538a77e020ba30a1321c9e48213fd361f9"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "single-bit",
+    "seed": 7,
+    "seed_number": 128,
+    "input_hex": "313238",
+    "point": "020073672063a16d2352d128d43bf297832071ca81c3afb844724d1084bcc5003a3fe5cb7ddcf6ee2fc9a316fd0c372aa9b3bc7903e2c03eb39a435ab352a66bbb8709"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "low-ones",
+    "seed": 7,
+    "seed_number": 255,
+    "input_hex": "323535",
+    "point": "030123e83aa51e000d6c11888b77943275bfacaea1918f1f6cbbe9935300ec0a069180b2867b5cc1da4bccf468105e8302d4e427258f2a6b779b5d7d7fa07c47091c0f"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "repeat-digit",
+    "seed": 7,
+    "seed_number": 7777777777,
+    "input_hex": "37373737373737373737",
+    "point": "0300274f5a0f4be5c4b966c2cf93be44477b9fd103131cdec1247a23cec9d4db7b1175cb8f19a6d944ba741574821147b8803767d7099ebef39fc1aac34f6319f6e04f"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed_pattern": "digit-walk",
+    "seed": 12,
+    "seed_number": 987,
+    "input_hex": "393837",
+    "point": "03002682273a38f6a6c2d1c8bf5515aee12c17a52ca870d46b5247d782d9e8752b11ca170ba74a37f595c34b68ea445605fa937d0377a53ca2e643a0c95bd2e6b41f3f"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "u32be",
+    "seed_pattern": "repeat-u16be",
+    "seed": 258,
+    "seed_number": 16908546,
+    "input_hex": "01020102",
+    "point": "02570f1acf3a657ba5891dcd420787120a567616df2822737b9d34392d9152bce0"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "u32le",
+    "seed_pattern": "repeat-u16be",
+    "seed": 258,
+    "seed_number": 16908546,
+    "input_hex": "02010201",
+    "point": "03e2fb16784d33d5c4561719d20070fb9af42b9fa4acdc2f3523cdc592b96f291e"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "u64be",
+    "seed_pattern": "repeat-u16be",
+    "seed": 258,
+    "seed_number": 16908546,
+    "input_hex": "0000000001020102",
+    "point": "02887c24c54f8013cdb29a94c6fac424e9fbb4b1e3d3463c17ce52ce2445a45ca2"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha256",
+    "encoding": "u64le",
+    "seed_pattern": "repeat-u16be",
+    "seed": 258,
+    "seed_number": 16908546,
+    "input_hex": "0201020100000000",
+    "point": "035c45ef36acf618a73804d7a20054a797b645c1fc9467563ab6b5d77913d3e733"
+  }
+]

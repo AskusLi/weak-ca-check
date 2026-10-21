@@ -114,3 +114,25 @@ The unified database contains 69 packs: 39 hash-counter combinations and 30
 pattern combinations. It holds 5,497,449 candidate records in 32,611,938 bytes,
 including the database index and all embedded pack metadata. Exact sizes,
 counts and checksums are emitted by `inspect`; see the current release manifest.
+
+## Version 0.4 full default database
+
+The default all-1m-v1 plan contains 303 recipes and 53,969,517 candidate seeds.
+On the host above, generating and writing the complete unified database took
+1,500.13 seconds (25 minutes) and peaked at 399,460 KiB RSS. The resulting file
+is 320,953,916 bytes; its SHA-256 is:
+
+```text
+9565c2ab6369ff9e2313a411d5d0d4a2ba1af47b9323d3df1c77c80fae4e7b7b
+```
+
+The complete process to scan the 10,344-row current CCADB snapshot with this
+database took 7.51 seconds and peaked at 354,772 KiB RSS. Its file contents were
+in the local filesystem cache. The scan covered 10,329 parsed certificates,
+1,504 distinct supported EC public keys and all 303 recipes. It found no match
+in the time-valid, non-revoked group and repeated the eight known weak P-384
+matches among records reported revoked. Fifteen missing PEM records remained
+input errors. See [the scan report](CURRENT_CA_SCAN.md) for scope and limits.
+
+The full per-certificate output contains private-key recovery evidence and is
+kept local. Only aggregate findings are recorded here.

@@ -1,9 +1,14 @@
 # CCADB public CA scan, 2026-10-21
 
-The offline version 0.2 checker scanned the official CCADB inventory with the
-inclusive 1–1,000,000 scalar rule, 39 hash-counter packs and 15 new pattern packs.
-All 54 packs used full-point verification. No certificate or trust store was
-modified, and no private CA services were contacted.
+Version 0.4 scanned the CCADB V5 inventory with the inclusive 1–1,000,000
+small-scalar check and the complete 303-recipe database. The database covers the
+default hash-seed and scalar-pattern classes on P-256, P-384 and P-521. Every
+one of the 1,504 distinct supported EC public keys in the parsed inventory was
+covered by the small-scalar check and the database. The scan found no weak key
+in the time-valid, non-revoked CCADB group. It found eight distinct weak P-384
+keys among records CCADB reports as revoked; those are the previously known
+historical matches. One also overlaps a scalar-pattern recipe. No new distinct
+weak keys were found by the expanded recipe set.
 
 | Coverage | Count |
 | --- | ---: |
@@ -16,6 +21,8 @@ modified, and no private CA services were contacted.
 | CA owners in that current group | 62 |
 | Current EC CA certificates with included-root metadata | 1,067 |
 | Verified weak-key findings in that current group | **0** |
+| Distinct historical weak P-384 keys | **8** |
+| Candidate recipes checked | 303 |
 
 The current group contains 185 roots and 1,086 intermediates: 506 P-256,
 742 P-384 and 23 P-521 certificates. All parsed EC public keys use supported
@@ -23,22 +30,29 @@ curves. All 8,557 other parsed certificates identify RSA public keys.
 
 “Current” means the Basic Constraints CA flag is set, the scan time is inside
 the certificate's validity interval, and CCADB reports either `Not Revoked` or
-a blank revocation field. The 185 roots have blank revocation fields; this is
-disclosed rather than treated as independent revocation verification. Included
-root metadata is a separate source attribute and does not establish a valid
-usable chain, application trust, or absence of root-store constraints.
+a blank revocation field on a root record. The 185 roots have blank revocation
+fields; this is disclosed rather than treated as independent revocation
+verification. Included-root metadata is a separate source attribute and does
+not establish a valid usable chain, application trust, or absence of
+root-store constraints.
 
 Fifteen records have no published PEM in the downloaded reports. Matching their
-fingerprints against the earlier official revoked-intermediate snapshot identifies
-all fifteen as RSA-2048 records. They remain errors in the full report, so the
-inventory command returns exit status 1. They are not counted as checked keys.
-The earlier snapshot has SHA-256
+fingerprints against the earlier official revoked-intermediate snapshot
+identifies all fifteen as RSA-2048 records. They remain input errors in the full
+scan and are not counted as checked keys. The earlier snapshot has SHA-256
 `e018c7daea2262ec7cbbd116b67f9b18e75d9de3d77d47728c3bc9ad5f9180c5`.
 
-The full inventory scan found the same eight known weak P-384 public keys in
-historical/revoked records. One also matched the single-bit pattern. No new
-distinct weak keys were found. Of 129 truncated-tag hits that failed full-point
-verification, none became a finding.
+The complete process took 7.51 seconds and peaked at 354,772 KiB RSS on the host
+described in [the benchmark notes](BENCHMARKS.md). The input database had just
+been built, checksummed and inspected, so its file contents were in the local
+filesystem cache. The checker itself reports 0.732 seconds after loading and
+validating its inputs. The full inventory scan returned exit status 1 because
+of the fifteen missing PEM records; the report preserves those errors.
+
+The full per-certificate report is a local research artifact and contains
+private-key recovery evidence for the historical matches. It is not part of
+the source tree or release package. This summary intentionally omits that
+evidence.
 
 ## Sources and reproduction
 
@@ -53,14 +67,13 @@ SHA-256: a8bf8933dc2b5134636ed7ad237a3be3855a2ae7ede4e6fb4c56822defb13646
 The certificate PEM reports were fetched for the 1990s, 2000s, 2010s and 2020s,
 covering every issuance decade in that inventory. The Rust loader verified the
 certificate DER SHA-256 fingerprints against the metadata. Source timestamps,
-hashes, per-certificate validity, record status and findings are preserved in
-the local `reports/current-ca-20261021.json` and its companion full report.
+hashes, validity, record status and findings are preserved in the local
+research report. To refresh the inventory, download a new snapshot and follow
+the current README to join the metadata and PEM reports before running the
+checker. The current group depends on the run time. This scan covers public
+CCADB records, not all undisclosed or private CA certificates worldwide.
 
-The version 0.2 helper used for this run has been replaced by Rust-native
-`import-ccadb` and `check --ccadb` commands. Follow the current README to join
-the downloaded inventory and PEM reports, then run the checker against the
-unified database. Download a new snapshot to refresh the inputs. The report's
-current group depends on the run time. This covers certificates available in this public
-CCADB snapshot, not all undisclosed or private CA certificates worldwide.
-Zero findings rules out only the reported interval and exact recipes; it is
-not proof of adequate key entropy or secure random generation.
+Zero findings in the current group rule out only the reported scalar interval
+and exact recipes. They do not prove adequate key entropy or secure random
+generation. The checker does not verify certificate signatures, build trust
+chains, or independently query revocation services.

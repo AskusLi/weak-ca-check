@@ -126,7 +126,7 @@ pub fn generate(recipe: Recipe, tag_bytes: u8) -> Result<Vec<u8>> {
             .into_par_iter()
             .map(|seed| {
                 let seed = seed as u32;
-                let Some(scalar) = recipe.scalar(seed, &order) else {
+                let Some(scalar) = recipe.scalar(seed, &order)? else {
                     return Ok(None);
                 };
                 let point = recipe.curve.point(&scalar)?;
@@ -296,6 +296,7 @@ mod tests {
             curve: Curve::P256,
             hash: Some(Hash::Sha256),
             encoding: Some(SeedEncoding::Decimal),
+            seed_pattern: None,
             mapping: "digest-be-mod-order-v1".into(),
             start: 0,
             count: 16,
@@ -311,7 +312,7 @@ mod tests {
                 let pack = Pack::from_bytes(generate(recipe.clone(), 3)?)?;
                 assert_eq!(
                     pack.len() as u64,
-                    count - u64::from(recipe.scalar(0, &curve.order()).is_none())
+                    count - u64::from(recipe.scalar(0, &curve.order())?.is_none())
                 );
                 for seed in [0, 1, 2, 255, 2047, 2048, 2049, count as u32 - 1] {
                     if u64::from(seed) < count
@@ -414,6 +415,25 @@ mod tests {
     #[test]
     fn generation_is_deterministic() -> Result<()> {
         assert_eq!(generate(recipe(), 3)?, generate(recipe(), 3)?);
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_hash_counter_pack_bytes_keep_their_v03_identity() -> Result<()> {
+        let recipe = Recipe {
+            curve: Curve::P384,
+            hash: Some(Hash::Sha256),
+            encoding: Some(SeedEncoding::Decimal),
+            seed_pattern: None,
+            mapping: "digest-be-mod-order-v1".into(),
+            start: 0,
+            count: 100_000,
+        };
+        let pack = Pack::from_bytes(generate(recipe, 3)?)?;
+        assert_eq!(
+            pack.sha256,
+            "4838cc8a89276ba2c53d3bf5c9c3c7986e4b2d2fa665bf342d9f629f16b52321"
+        );
         Ok(())
     }
 

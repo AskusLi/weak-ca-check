@@ -47,7 +47,10 @@ For each curve it includes 255 repeated-byte records, 65,535 repeated-word
 records, 99,999 prefix records, 99,999 order-minus-counter records, and one
 record per supported bit position. Repeated-byte and repeated-word recipes
 overlap deliberately. Findings retain every matching recipe. The current
-`build-db` defaults cover all ten families, with `count` capped by each domain.
+`build-db` defaults cover all ten families, with `--count` defaulting to one
+million candidates per class and capped by each domain. Use repeatable
+`--class-count scalar:<pattern>=N` overrides to raise individual classes; the
+builder validates the complete plan before generating packs.
 
 These are explicitly defined weak-key hypotheses. They do not exhaust sparse
 scalars, mixed word patterns, seed encodings, PRNG implementations or low-entropy

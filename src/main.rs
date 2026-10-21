@@ -2,14 +2,16 @@ mod database;
 mod inventory;
 mod output;
 mod pack;
+mod plan;
 mod recipe;
 mod scan;
 mod small;
 
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 use database::Database;
-use recipe::{Curve, Hash, Pattern, Recipe, SeedEncoding};
+use plan::{Selection, Suite};
+use recipe::{Curve, Hash, Pattern, Recipe, SeedEncoding, SeedPattern};
 use std::{fs, path::PathBuf, time::Instant};
 
 #[derive(Parser)]
@@ -41,13 +43,6 @@ struct PackInputs {
     db: Vec<PathBuf>,
 }
 
-#[derive(Clone, Copy, ValueEnum)]
-enum Suite {
-    All,
-    Hashes,
-    Patterns,
-}
-
 #[derive(Subcommand)]
 enum Command {
     /// Build one self-describing database from selected curves and recipes.
@@ -62,13 +57,21 @@ enum Command {
         encoding: Vec<SeedEncoding>,
         #[arg(long, value_enum)]
         pattern: Vec<Pattern>,
-        /// Maximum seeds per recipe, further limited by each pattern's domain.
-        #[arg(long, default_value_t = 100_000)]
+        #[arg(long, value_enum)]
+        seed_pattern: Vec<SeedPattern>,
+        /// Default candidate seeds per selected class, capped at finite class limits.
+        #[arg(long, default_value_t = 1_000_000)]
         count: u64,
+        /// Override a class budget, for example seed:counter=2000000; repeatable.
+        #[arg(long = "class-count", value_name = "CLASS=N")]
+        class_count: Vec<String>,
+        /// Print a validated recipe plan and candidate-size estimate without generating.
+        #[arg(long, conflicts_with = "output")]
+        dry_run: bool,
         #[arg(long, default_value_t = 24)]
         tag_bits: u8,
-        #[arg(long)]
-        output: PathBuf,
+        #[arg(long, required_unless_present = "dry_run")]
+        output: Option<PathBuf>,
     },
     /// Combine packs and databases into one file, deduplicating identical packs.
     MergeDb {
@@ -86,7 +89,7 @@ enum Command {
         #[arg(long)]
         output: PathBuf,
     },
-    /// Generate a deterministic compact hash-counter candidate pack.
+    /// Generate a deterministic compact hash-seed candidate pack.
     Generate {
         #[arg(long, value_enum)]
         curve: Curve,
@@ -94,10 +97,13 @@ enum Command {
         hash: Hash,
         #[arg(long, value_enum, default_value = "decimal")]
         encoding: SeedEncoding,
+        #[arg(long, value_enum, default_value = "counter")]
+        seed_pattern: SeedPattern,
         #[arg(long, default_value_t = 0)]
         start: u32,
-        #[arg(long, default_value_t = 100_000)]
-        count: u64,
+        /// Defaults to the remaining seed range, capped at 100,000.
+        #[arg(long)]
+        count: Option<u64>,
         /// Lookup tag width. Every hit is verified against the full public key.
         #[arg(long, default_value_t = 24)]
         tag_bits: u8,
@@ -141,7 +147,7 @@ enum Command {
     },
     /// Validate and describe a candidate pack.
     Inspect { pack: PathBuf },
-    /// List supported curves, hashes and seed encodings.
+    /// List supported curves, hashes, seed encodings and pattern classes.
     Recipes,
 }
 
@@ -175,8 +181,13 @@ fn read_packs(inputs: PackInputs) -> Result<Vec<pack::Pack>> {
         .iter()
         .map(|p| pack::Pack::open(p))
         .collect::<Result<_>>()?;
+    let mut database_paths = std::collections::BTreeSet::new();
     for path in inputs.db {
-        packs.extend(Database::open(&path)?.packs);
+        let identity = fs::canonicalize(&path)
+            .with_context(|| format!("resolve database path {}", path.display()))?;
+        if database_paths.insert(identity) {
+            packs.extend(Database::open(&path)?.packs);
+        }
     }
     let unique: std::collections::BTreeMap<_, _> =
         packs.into_iter().map(|p| (p.sha256.clone(), p)).collect();
@@ -191,69 +202,65 @@ fn run(args: Args) -> Result<i32> {
             hash,
             encoding,
             pattern,
+            seed_pattern,
             count,
+            class_count,
+            dry_run,
             tag_bits,
             output,
         } => {
-            ensure!(
-                [24, 32, 48, 64].contains(&tag_bits),
-                "--tag-bits must be 24, 32, 48 or 64"
-            );
-            ensure!(
-                (1..=u64::from(u32::MAX) + 1).contains(&count),
-                "count must be within 1..=2^32"
-            );
-            ensure!(
-                !matches!(suite, Suite::Patterns) || hash.is_empty(),
-                "--hash requires the hashes or all suite"
-            );
-            ensure!(
-                !matches!(suite, Suite::Hashes) || pattern.is_empty(),
-                "--pattern requires the patterns or all suite"
-            );
-            let hashes = if hash.is_empty() {
-                Hash::value_variants().to_vec()
-            } else {
-                hash
-            };
-            let patterns = if pattern.is_empty() {
-                Pattern::ALL.to_vec()
-            } else {
-                pattern
-            };
+            let plan = plan::build(Selection {
+                suite,
+                curves: curve,
+                hashes: hash,
+                encodings: encoding,
+                seed_patterns: seed_pattern,
+                patterns: pattern,
+                count,
+                class_counts: class_count,
+                tag_bits,
+            })?;
+            if dry_run {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "candidate_seeds": plan.candidate_seeds,
+                        "record_payload_bytes_upper_bound": plan.record_payload_bytes_upper_bound,
+                        "recipes": plan.recipes,
+                    }))?
+                );
+                return Ok(0);
+            }
+            let output = output.context("--output is required unless --dry-run is used")?;
             let mut packs = Vec::new();
             let started = Instant::now();
-            for curve in curve {
-                if !matches!(suite, Suite::Patterns) {
-                    for hash in &hashes {
-                        for encoding in &encoding {
-                            eprintln!("Generating {curve:?}/{hash:?}/{encoding:?}");
-                            let recipe = Recipe {
-                                curve,
-                                hash: Some(*hash),
-                                encoding: Some(*encoding),
-                                mapping: "digest-be-mod-order-v1".into(),
-                                start: 0,
-                                count,
-                            };
-                            packs.push(pack::Pack::from_bytes(pack::generate(
-                                recipe,
-                                tag_bits / 8,
-                            )?)?);
-                        }
-                    }
-                }
-                if !matches!(suite, Suite::Hashes) {
-                    for pattern in &patterns {
-                        eprintln!("Generating {curve:?}/{pattern:?}");
-                        let recipe =
-                            Recipe::patterned(curve, *pattern, 0, count.min(pattern.limit(curve)));
-                        packs.push(pack::Pack::from_bytes(pack::generate(
-                            recipe,
-                            tag_bits / 8,
-                        )?)?);
-                    }
-                }
+            for recipe in plan.recipes {
+                let class = if let Some(hash) = recipe.hash {
+                    let seed_pattern = recipe
+                        .seed_pattern
+                        .unwrap_or(SeedPattern::Counter)
+                        .to_possible_value()
+                        .expect("seed pattern name")
+                        .get_name()
+                        .to_owned();
+                    format!("{hash:?}/{seed_pattern}/{:?}", recipe.encoding.unwrap())
+                } else {
+                    recipe
+                        .pattern()
+                        .expect("scalar pattern recipe")
+                        .to_possible_value()
+                        .expect("scalar pattern name")
+                        .get_name()
+                        .to_owned()
+                };
+                eprintln!(
+                    "Generating {:?}/{class}: {} candidates",
+                    recipe.curve, recipe.count
+                );
+                packs.push(pack::Pack::from_bytes(pack::generate(
+                    recipe,
+                    tag_bits / 8,
+                )?)?);
             }
             Database::write(&output, &packs, args.force)?;
             eprintln!(
@@ -281,6 +288,7 @@ fn run(args: Args) -> Result<i32> {
             curve,
             hash,
             encoding,
+            seed_pattern,
             start,
             count,
             tag_bits,
@@ -290,10 +298,17 @@ fn run(args: Args) -> Result<i32> {
                 [24, 32, 48, 64].contains(&tag_bits),
                 "--tag-bits must be 24, 32, 48 or 64"
             );
+            let count = count.unwrap_or_else(|| {
+                seed_pattern
+                    .limit(encoding)
+                    .saturating_sub(u64::from(start))
+                    .min(100_000)
+            });
             let recipe = Recipe {
                 curve,
                 hash: Some(hash),
                 encoding: Some(encoding),
+                seed_pattern: (seed_pattern != SeedPattern::Counter).then_some(seed_pattern),
                 start,
                 count,
                 mapping: "digest-be-mod-order-v1".into(),
@@ -423,9 +438,10 @@ fn run(args: Args) -> Result<i32> {
                 "{}",
                 serde_json::to_string_pretty(&serde_json::json!({
                     "curves": names::<Curve>(), "hashes": names::<Hash>(), "encodings": names::<SeedEncoding>(),
+                    "seed_patterns": names::<SeedPattern>(),
                     "patterns": names::<Pattern>(),
                     "mapping": "digest-be-mod-order-v1", "zero_scalar": "skipped",
-                    "default_tag_bits": 24, "record_bytes": "tag_bytes + minimal seed bytes (6 bytes for 100000 seeds)",
+                    "default_tag_bits": 24, "record_bytes": "tag_bytes + minimal seed-index bytes (6 bytes for one million seeds)",
                     "small_scalar_rule": "1..=small_max; baby-step giant-step; no downloaded table needed",
                 }))?
             );
@@ -460,6 +476,34 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn repeated_database_paths_are_opened_once_and_distinct_inputs_are_validated() -> Result<()> {
+        let dir = std::env::temp_dir().join(format!("weak-ca-db-inputs-{}", std::process::id()));
+        fs::create_dir_all(&dir)?;
+        let valid_path = dir.join("valid.wkdb");
+        let invalid_path = dir.join("invalid.wkdb");
+        let pack = pack::Pack::from_bytes(pack::generate(
+            Recipe::patterned(Curve::P256, Pattern::LowOnes, 0, 8),
+            3,
+        )?)?;
+        Database::write(&valid_path, &[pack], false)?;
+        let selected = read_packs(PackInputs {
+            db: vec![valid_path.clone(), valid_path.clone()],
+            ..PackInputs::default()
+        })?;
+        assert_eq!(selected.len(), 1);
+        fs::write(&invalid_path, b"invalid")?;
+        assert!(
+            read_packs(PackInputs {
+                db: vec![valid_path.clone(), invalid_path],
+                ..PackInputs::default()
+            })
+            .is_err()
+        );
+        fs::remove_dir_all(dir)?;
+        Ok(())
+    }
 
     #[test]
     fn independent_certificates_match_all_recipes_through_database_and_certificate_cli()
@@ -547,6 +591,84 @@ mod tests {
         let report: serde_json::Value = serde_json::from_slice(&fs::read(report_path)?)?;
         assert_eq!(report["input_certificates"], 1);
         assert_eq!(report["findings"].as_array().unwrap().len(), 1);
+        fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    fn build_db_finds_synthetic_ca_from_a_seed_number_pattern() -> Result<()> {
+        let dir = std::env::temp_dir().join(format!("weak-ca-seed-pattern-{}", std::process::id()));
+        fs::create_dir_all(&dir)?;
+        let db_path = dir.join("seed-pattern.wkdb");
+        let invalid_db = dir.join("invalid.wkdb");
+        let invalid = Args::try_parse_from([
+            "weak-ca-check",
+            "build-db",
+            "--suite",
+            "hashes",
+            "--curve",
+            "p384",
+            "--hash",
+            "sha256",
+            "--seed-pattern",
+            "repeat-byte",
+            "--count",
+            "1",
+            "--class-count",
+            "seed:repeat-byte=257",
+            "--output",
+            invalid_db.to_str().unwrap(),
+        ])?;
+        assert!(run(invalid).is_err());
+        assert!(!invalid_db.exists());
+        let args = Args::try_parse_from([
+            "weak-ca-check",
+            "build-db",
+            "--suite",
+            "hashes",
+            "--curve",
+            "p384",
+            "--hash",
+            "sha256",
+            "--seed-pattern",
+            "repeat-byte",
+            "--count",
+            "1",
+            "--class-count",
+            "seed:repeat-byte=256",
+            "--output",
+            db_path.to_str().unwrap(),
+        ])?;
+        assert_eq!(run(args)?, 0);
+
+        let certificate = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/seed-pattern-fixtures/seed-pattern-repeat-byte-p384.pem");
+        let report_path = dir.join("report.json");
+        let args = Args::try_parse_from([
+            "weak-ca-check",
+            "--force",
+            "check",
+            "--db",
+            db_path.to_str().unwrap(),
+            "--small-max",
+            "0",
+            "--cert",
+            certificate.to_str().unwrap(),
+            "--fail-on-match",
+            "--output",
+            report_path.to_str().unwrap(),
+        ])?;
+        assert_eq!(run(args)?, 2);
+        let report: serde_json::Value = serde_json::from_slice(&fs::read(report_path)?)?;
+        let evidence = report["findings"][0]["evidence"].as_array().unwrap();
+        assert!(evidence.iter().any(|item| {
+            item["kind"] == "hash-seed-pattern-recipe"
+                && item["seed"] == 1
+                && item["seed_number"] == 16_843_009u64
+                && item["recipe"]["seed_pattern"] == "repeat-byte"
+                && item["recipe"]["hash"] == "sha256"
+                && item["recipe"]["curve"] == "p384"
+        }));
         fs::remove_dir_all(dir)?;
         Ok(())
     }
