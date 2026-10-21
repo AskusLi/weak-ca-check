@@ -18,6 +18,9 @@ in manifests and findings. Checksums detect corruption; they do not authenticate
 the publisher or prove that a third-party pack includes all claimed seeds.
 Rebuild from its recipe to verify completeness.
 
+Version 0.2 also supports [explicit scalar patterns](PATTERNS.md). They use the
+same envelope with a different mapping and omit hash/encoding recipe fields.
+
 ## Recipe
 
 `digest-be-mod-order-v1` means:

@@ -1,0 +1,92 @@
+[
+  {
+    "curve": "p256",
+    "pattern": "repeat-byte",
+    "seed": 255,
+    "point": "03f72cbd240e26c0d21b1023179586eb532c6102c49c3677cc1a3d132b9db9d31a"
+  },
+  {
+    "curve": "p256",
+    "pattern": "repeat-u16be",
+    "seed": 65535,
+    "point": "03f72cbd240e26c0d21b1023179586eb532c6102c49c3677cc1a3d132b9db9d31a"
+  },
+  {
+    "curve": "p256",
+    "pattern": "prefix-u32be",
+    "seed": 4294967295,
+    "point": "022679e930722d55bc752f27831b2333227b5f3630dee8aac06cc6d0aa110bbd77"
+  },
+  {
+    "curve": "p256",
+    "pattern": "order-minus-counter",
+    "seed": 99999,
+    "point": "03454d2213f58e121c813e40371c058f6873f7793d9b5d588c0ac64566dd869301"
+  },
+  {
+    "curve": "p256",
+    "pattern": "single-bit",
+    "seed": 255,
+    "point": "0377b20a912e6b23135066e911891524bc4efe3560e3e92350b52dec8f375f2b54"
+  },
+  {
+    "curve": "p384",
+    "pattern": "repeat-byte",
+    "seed": 255,
+    "point": "038e32381850a570e53d52786a71e833a22cf810c0c2d8f8414ed61004d6a8ae364a3ac516938f22508fce11b165b6bf3b"
+  },
+  {
+    "curve": "p384",
+    "pattern": "repeat-u16be",
+    "seed": 65535,
+    "point": "038e32381850a570e53d52786a71e833a22cf810c0c2d8f8414ed61004d6a8ae364a3ac516938f22508fce11b165b6bf3b"
+  },
+  {
+    "curve": "p384",
+    "pattern": "prefix-u32be",
+    "seed": 4294967295,
+    "point": "02e6630abf7e449d485877f920d682d04b3ddf552cc45e143a5ae9e1157735b7efe6ce20a01ff352ea429fc86219f7a754"
+  },
+  {
+    "curve": "p384",
+    "pattern": "order-minus-counter",
+    "seed": 99999,
+    "point": "02ab32e59019086a0ceea8db9238d6c95a6a0b381b8eb3a12565ccea7114881cfe2f2d8e5776d0ac6986f2521df3a3aa5e"
+  },
+  {
+    "curve": "p384",
+    "pattern": "single-bit",
+    "seed": 383,
+    "point": "02e3e25cdb160208b6474e2b34d72bf586bba14f72c3f97f515a405d1429196e6673161b78ad80afe664ee504d4b161ab7"
+  },
+  {
+    "curve": "p521",
+    "pattern": "repeat-byte",
+    "seed": 255,
+    "point": "02007bef212219adc9709387acfa5424dd835a8f9cb3c5f1135e80278fb750617a10d4de9f2d6a0ea7e896c519e17ab7fbcc08d6920c524e23a0c391a4c96d0844c53a"
+  },
+  {
+    "curve": "p521",
+    "pattern": "repeat-u16be",
+    "seed": 65535,
+    "point": "02007bef212219adc9709387acfa5424dd835a8f9cb3c5f1135e80278fb750617a10d4de9f2d6a0ea7e896c519e17ab7fbcc08d6920c524e23a0c391a4c96d0844c53a"
+  },
+  {
+    "curve": "p521",
+    "pattern": "prefix-u32be",
+    "seed": 4294967295,
+    "point": "0201c3da62c4ffe40c0814813a8e2c16d0d36b8ba885e3ba471473f6b6e4d8d1bbc931dcc010fbdfabe6d1b80e080538495f259429ba1ceb38644a0f5ac64bd96394e6"
+  },
+  {
+    "curve": "p521",
+    "pattern": "order-minus-counter",
+    "seed": 99999,
+    "point": "030091d8b8bce750e547cbf947818aadad94d36da664c9aacb20a979a75596ae60270e0c797d80f08df907eee6eeb355ff8efbfec85535866d0f901945251664248d2e"
+  },
+  {
+    "curve": "p521",
+    "pattern": "single-bit",
+    "seed": 520,
+    "point": "02002da7db02840f023a36e1fffeaee16d3c47bb435bec6a231d4aab1ec5412f56fb90fcc4eaab9fd8571084cb9da252466c052d21913ce0fda47e61829972ce8f9a17"
+  }
+]

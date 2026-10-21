@@ -31,6 +31,19 @@ symlinks. Supply public certificates, rather than private-key files. Cross-signe
 certificates sharing one public point are checked once, while their fingerprints
 and source records remain in the finding.
 
+To test one specific certificate, use the explicit `--cert` option (also
+available as `--certificate`). Repeat it to test several chosen files:
+
+```sh
+weak-ca-check check --cert my-ca.pem --pack-dir starter-100k-v1 \
+  --pack-dir patterns-100k-v1 --fail-on-match --output result.json
+```
+
+This checks the default million-scalar interval plus both pack directories.
+Use `--small-max 0` to select only the supplied packs. The JSON contains exact
+recipe/seed evidence for matches and a per-certificate EC inventory, including
+validity timestamps and normalized public-point identifiers.
+
 For a downloaded CCADB revoked-intermediate CSV:
 
 ```sh
@@ -82,6 +95,45 @@ with `--start` and `--count`. Other encodings are `u32be`, `u32le`, `u64be` and
 `u64le`. Changing an encoding or scalar mapping changes which keys are covered.
 The builder currently keeps a pack's records in memory; partition large ranges
 to limit memory. Packs are release assets and are excluded from Git history.
+
+## Fast pattern generators
+
+Version 0.2 adds five scalar pattern families: repeated bytes, repeated 16-bit
+words, a 32-bit prefix followed by zeros, values just below the group order,
+and a single set bit. These generators use point additions or doublings and
+batch normalization. They avoid a separate full scalar multiplication for
+every candidate. All lookup hits still require full-point verification.
+
+```sh
+weak-ca-check generate-pattern --curve p384 --pattern prefix-u32be \
+  --count 1000000 --output prefix-p384-1m.wkp
+weak-ca-check check --cert my-ca.pem --pack prefix-p384-1m.wkp
+python3 scripts/build_patterns.py
+```
+
+The pattern builder produces 15 packs in `dist/patterns-100k-v1`, about 4.6 MB.
+It covers the complete repeated-byte, repeated-word and single-bit domains;
+the prefix and order-minus-counter families use seeds 0–99,999 by default.
+Use `--counter-count 1000000 --output dist/patterns-1m-v1` for wider counter
+ranges. [Pattern definitions and limits](docs/PATTERNS.md) specify every mapping.
+
+## Check the public CA inventory
+
+The following helper downloads and caches the official CCADB root/intermediate
+inventory and certificate PEM reports, joins them by SHA-256 fingerprint, then
+invokes the offline Rust checker:
+
+```sh
+python3 scripts/check_ccadb.py --pack-dir dist/starter-100k-v1 \
+  --pack-dir dist/patterns-100k-v1 --output reports/current-ca.json
+```
+
+The summary separates time-valid CA certificates without reported revocation
+from historical records. It preserves source hashes, missing-certificate
+errors and a full report. Blank root revocation fields are disclosed separately.
+Root-store metadata is not a chain validation. The download covers CCADB's
+public inventory rather than every private or undisclosed CA worldwide.
+Cached files are reused; `--refresh` fetches a new snapshot.
 
 ## Compact lookup with exact verification
 

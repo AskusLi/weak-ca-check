@@ -5,7 +5,7 @@ mod small;
 
 use anyhow::{Result, ensure};
 use clap::{Parser, Subcommand, ValueEnum};
-use recipe::{Curve, Hash, Recipe, SeedEncoding};
+use recipe::{Curve, Hash, Pattern, Recipe, SeedEncoding};
 use std::{fs, path::PathBuf, time::Instant};
 
 #[derive(Parser)]
@@ -41,6 +41,22 @@ enum Command {
         #[arg(long)]
         output: PathBuf,
     },
+    /// Generate a pattern pack using point additions or doublings in batches.
+    GeneratePattern {
+        #[arg(long, value_enum)]
+        curve: Curve,
+        #[arg(long, value_enum)]
+        pattern: Pattern,
+        #[arg(long, default_value_t = 0)]
+        start: u32,
+        /// Defaults to the remaining pattern range, capped at 100,000 seeds.
+        #[arg(long)]
+        count: Option<u64>,
+        #[arg(long, default_value_t = 24)]
+        tag_bits: u8,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Check public certificates in files, directories or a CCADB CSV.
     Check {
         /// Repeat for multiple candidate packs.
@@ -54,6 +70,9 @@ enum Command {
         small_max: u32,
         #[arg(long)]
         ccadb: Option<PathBuf>,
+        /// A specific public certificate or PEM bundle; repeat as needed.
+        #[arg(long = "cert", alias = "certificate")]
+        cert: Vec<PathBuf>,
         #[arg(long)]
         output: Option<PathBuf>,
         /// Exit with status 2 when an exactly verified weak-key match is found.
@@ -97,8 +116,8 @@ fn run(args: Args) -> Result<i32> {
             );
             let recipe = Recipe {
                 curve,
-                hash,
-                encoding,
+                hash: Some(hash),
+                encoding: Some(encoding),
                 start,
                 count,
                 mapping: "digest-be-mod-order-v1".into(),
@@ -117,15 +136,49 @@ fn run(args: Args) -> Result<i32> {
             );
             Ok(0)
         }
+        Command::GeneratePattern {
+            curve,
+            pattern,
+            start,
+            count,
+            tag_bits,
+            output,
+        } => {
+            ensure!(
+                [24, 32, 48, 64].contains(&tag_bits),
+                "--tag-bits must be 24, 32, 48 or 64"
+            );
+            let count = count.unwrap_or_else(|| {
+                pattern
+                    .limit(curve)
+                    .saturating_sub(u64::from(start))
+                    .min(pattern.default_count(curve))
+            });
+            let recipe = Recipe::patterned(curve, pattern, start, count);
+            let started = Instant::now();
+            let bytes = pack::generate(recipe, tag_bits / 8)?;
+            let pack = pack::Pack::from_bytes(bytes.clone())?;
+            write_output(Some(output), &bytes)?;
+            eprintln!(
+                "{} records, {} bytes, {:.3}s, SHA-256 {}",
+                pack.len(),
+                pack.byte_len(),
+                started.elapsed().as_secs_f64(),
+                pack.sha256
+            );
+            Ok(0)
+        }
         Command::Check {
             pack: mut paths,
             pack_dir,
             small_max,
             ccadb,
+            cert,
             output,
             fail_on_match,
-            certificates,
+            mut certificates,
         } => {
+            certificates.extend(cert);
             for directory in pack_dir {
                 let mut count = 0;
                 for entry in fs::read_dir(&directory)? {
@@ -203,6 +256,7 @@ fn run(args: Args) -> Result<i32> {
                 "{}",
                 serde_json::to_string_pretty(&serde_json::json!({
                     "curves": names::<Curve>(), "hashes": names::<Hash>(), "encodings": names::<SeedEncoding>(),
+                    "patterns": names::<Pattern>(),
                     "mapping": "digest-be-mod-order-v1", "zero_scalar": "skipped",
                     "default_tag_bits": 24, "record_bytes": "tag_bytes + minimal seed bytes (6 bytes for 100000 seeds)",
                     "small_scalar_rule": "1..=small_max; baby-step giant-step; no downloaded table needed",

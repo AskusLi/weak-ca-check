@@ -83,3 +83,22 @@ each starter recipe. Both compiled binaries reported exactly the expected
 
 macOS and Windows release jobs are provided in the workflow. They have not
 been executed locally, and no binaries for those platforms are claimed here.
+
+## Version 0.2 additions
+
+The optimized P-384 prefix-pattern generator produced 99,999 nonzero candidates
+from 100,000 seeds in 0.078 seconds. A million-seed run produced 999,999
+candidates in 1.076 seconds and occupied 6,000,246 bytes. The larger run shared
+the host with other validation work, so this is an indicative wall time rather
+than an isolated throughput measurement. Pattern recurrence enables these
+speeds; they do not apply to arbitrary hash-counter generators.
+
+The new 15-pack pattern bundle occupies 4,595,267 bytes, bringing both bundles
+to 28,006,433 bytes. All 18 unit tests pass. Independent Python/OpenSSL checks
+cover all 54 distributed recipes and the explicit `--cert` CLI option, including
+overlapping recipes that produce the same public point. Rebuilding the original
+P-384/SHA-256 100k hash pack reproduced its original whole-file SHA-256 exactly:
+`4838cc8a89276ba2c53d3bf5c9c3c7986e4b2d2fa665bf342d9f629f16b52321`.
+
+See [the current public CA scan](CURRENT_CA_SCAN.md) for the broader inventory
+coverage and bounded results.

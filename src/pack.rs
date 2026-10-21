@@ -1,5 +1,6 @@
 use crate::recipe::{Recipe, point_tag};
 use anyhow::{Context, Result, bail, ensure};
+use p384::elliptic_curve::{BatchNormalize, sec1::ToSec1Point};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -41,6 +42,76 @@ fn tag(curve: crate::recipe::Curve, point: &[u8], tag_bytes: u8) -> u64 {
     point_tag(curve, point) >> (64 - u32::from(tag_bytes) * 8)
 }
 
+// Linear patterns advance by one fixed curve point. Single-bit patterns double.
+// Normalize a whole chunk with one inversion rather than one inversion per key.
+macro_rules! pattern_records {
+    ($name:ident, $curve:ident) => {
+        fn $name(recipe: &Recipe, tag_bytes: u8) -> Result<Vec<Record>> {
+            let order = recipe.curve.order();
+            let pattern = recipe.pattern().context("expected pattern recipe")?;
+            let step = pattern
+                .multiplier(recipe.curve)
+                .map(|m| {
+                    let bytes = recipe.curve.point(&(m % &order))?;
+                    Ok::<_, anyhow::Error>($curve::ProjectivePoint::from(
+                        *$curve::PublicKey::from_sec1_bytes(&bytes)?.as_affine(),
+                    ))
+                })
+                .transpose()?;
+            let chunks: Result<Vec<Vec<Record>>> = (0..recipe.count.div_ceil(2048))
+                .into_par_iter()
+                .map(|chunk| {
+                    let start = u64::from(recipe.start) + chunk * 2048;
+                    let end = (start + 2048).min(u64::from(recipe.start) + recipe.count);
+                    let mut point = match recipe.point(start as u32)? {
+                        Some(bytes) => $curve::ProjectivePoint::from(
+                            *$curve::PublicKey::from_sec1_bytes(&bytes)?.as_affine(),
+                        ),
+                        None => $curve::ProjectivePoint::IDENTITY,
+                    };
+                    let mut points = Vec::with_capacity((end - start) as usize);
+                    for _ in start..end {
+                        points.push(point);
+                        if let Some(step) = step {
+                            point += step;
+                        } else {
+                            point += point;
+                        }
+                    }
+                    let affine = <$curve::ProjectivePoint as BatchNormalize<
+                        [$curve::ProjectivePoint],
+                    >>::batch_normalize(points.as_slice());
+                    let records = affine
+                        .iter()
+                        .zip(start..end)
+                        .filter_map(|(point, seed)| {
+                            // All linear multipliers are nonzero modulo the prime order;
+                            // their only zero in the supported uint32 range is seed zero.
+                            if step.is_some() && seed == 0 {
+                                return None;
+                            }
+                            Some(Record {
+                                tag: tag(
+                                    recipe.curve,
+                                    point.to_sec1_point(true).as_bytes(),
+                                    tag_bytes,
+                                ),
+                                seed: seed as u32,
+                            })
+                        })
+                        .collect();
+                    Ok(records)
+                })
+                .collect();
+            Ok(chunks?.into_iter().flatten().collect())
+        }
+    };
+}
+
+pattern_records!(p256_pattern_records, p256);
+pattern_records!(p384_pattern_records, p384);
+pattern_records!(p521_pattern_records, p521);
+
 pub fn generate(recipe: Recipe, tag_bytes: u8) -> Result<Vec<u8>> {
     recipe.validate()?;
     ensure!(
@@ -49,21 +120,29 @@ pub fn generate(recipe: Recipe, tag_bytes: u8) -> Result<Vec<u8>> {
     );
     let order = recipe.curve.order();
     let end = u64::from(recipe.start) + recipe.count;
-    let records: Result<Vec<_>> = (u64::from(recipe.start)..end)
-        .into_par_iter()
-        .map(|seed| {
-            let seed = seed as u32;
-            let Some(scalar) = recipe.scalar(seed, &order) else {
-                return Ok(None);
-            };
-            let point = recipe.curve.point(&scalar)?;
-            Ok(Some(Record {
-                tag: tag(recipe.curve, &point, tag_bytes),
-                seed,
-            }))
-        })
-        .collect();
-    let mut records: Vec<_> = records?.into_iter().flatten().collect();
+    let mut records = if recipe.pattern().is_some() {
+        match recipe.curve {
+            crate::recipe::Curve::P256 => p256_pattern_records(&recipe, tag_bytes)?,
+            crate::recipe::Curve::P384 => p384_pattern_records(&recipe, tag_bytes)?,
+            crate::recipe::Curve::P521 => p521_pattern_records(&recipe, tag_bytes)?,
+        }
+    } else {
+        let records: Result<Vec<_>> = (u64::from(recipe.start)..end)
+            .into_par_iter()
+            .map(|seed| {
+                let seed = seed as u32;
+                let Some(scalar) = recipe.scalar(seed, &order) else {
+                    return Ok(None);
+                };
+                let point = recipe.curve.point(&scalar)?;
+                Ok(Some(Record {
+                    tag: tag(recipe.curve, &point, tag_bytes),
+                    seed,
+                }))
+            })
+            .collect();
+        records?.into_iter().flatten().collect()
+    };
     records.par_sort_unstable();
     let seed_bytes = seed_bytes(&recipe);
     let header = Header {
@@ -211,17 +290,78 @@ impl Pack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::recipe::{Curve, Hash, SeedEncoding};
+    use crate::recipe::{Curve, Hash, Pattern, SeedEncoding};
 
     fn recipe() -> Recipe {
         Recipe {
             curve: Curve::P256,
-            hash: Hash::Sha256,
-            encoding: SeedEncoding::Decimal,
+            hash: Some(Hash::Sha256),
+            encoding: Some(SeedEncoding::Decimal),
             mapping: "digest-be-mod-order-v1".into(),
             start: 0,
             count: 16,
         }
+    }
+
+    #[test]
+    fn fast_patterns_match_scalar_multiplication_across_chunks() -> Result<()> {
+        for curve in [Curve::P256, Curve::P384, Curve::P521] {
+            for pattern in [
+                Pattern::RepeatByte,
+                Pattern::RepeatU16be,
+                Pattern::PrefixU32be,
+                Pattern::OrderMinusCounter,
+                Pattern::SingleBit,
+            ] {
+                let count = pattern.limit(curve).min(4100);
+                let recipe = Recipe::patterned(curve, pattern, 0, count);
+                let pack = Pack::from_bytes(generate(recipe.clone(), 3)?)?;
+                assert_eq!(
+                    pack.len() as u64,
+                    count - u64::from(pattern != Pattern::SingleBit)
+                );
+                for seed in [0, 1, 2, 255, 2047, 2048, 2049, count as u32 - 1] {
+                    if u64::from(seed) < count
+                        && let Some(point) = recipe.point(seed)?
+                    {
+                        assert!(
+                            pack.lookup(&point)?.0.contains(&seed),
+                            "{curve:?}/{pattern:?}/{seed}"
+                        );
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pattern_generation_handles_nonzero_start_and_uint32_endpoint() -> Result<()> {
+        for curve in [Curve::P256, Curve::P384, Curve::P521] {
+            for pattern in [Pattern::PrefixU32be, Pattern::OrderMinusCounter] {
+                let recipe = Recipe::patterned(curve, pattern, u32::MAX - 1, 2);
+                let pack = Pack::from_bytes(generate(recipe.clone(), 8)?)?;
+                for seed in [u32::MAX - 1, u32::MAX] {
+                    assert_eq!(pack.lookup(&recipe.point(seed)?.unwrap())?.0, vec![seed]);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pattern_packs_are_identical_across_thread_counts() -> Result<()> {
+        let recipe = Recipe::patterned(Curve::P384, Pattern::RepeatU16be, 17, 5000);
+        let one = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build()?
+            .install(|| generate(recipe.clone(), 3))?;
+        let four = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()?
+            .install(|| generate(recipe, 3))?;
+        assert_eq!(one, four);
+        Ok(())
     }
 
     #[test]

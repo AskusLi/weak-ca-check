@@ -24,9 +24,12 @@ pub struct Certificate {
     pub reported_revocation_date: Option<String>,
     pub certificate_sha256: String,
     pub spki_sha256: String,
+    pub normalized_point_sha256: Option<String>,
     pub algorithm_oid: String,
     pub curve: Option<Curve>,
     pub is_ca: bool,
+    pub not_before_unix: i64,
+    pub not_after_unix: i64,
     #[serde(skip)]
     pub point: Vec<u8>,
 }
@@ -86,9 +89,12 @@ fn certificate(
         reported_revocation_date: revoked,
         certificate_sha256: hex::encode(Sha256::digest(der)),
         spki_sha256: hex::encode(Sha256::digest(spki.raw)),
+        normalized_point_sha256: curve.map(|curve| hex::encode(point_digest(curve, &point))),
         algorithm_oid,
         curve,
         is_ca,
+        not_before_unix: cert.validity().not_before.timestamp(),
+        not_after_unix: cert.validity().not_after.timestamp(),
         point,
     })
 }
@@ -251,6 +257,7 @@ pub struct Report {
     pub small_scalar_max_inclusive: u32,
     pub input_certificates: usize,
     pub supported_ec_certificates: usize,
+    pub ec_certificates: Vec<Certificate>,
     pub unsupported_certificates: Vec<Certificate>,
     pub distinct_ec_keys: usize,
     pub covered_distinct_ec_keys: usize,
@@ -298,7 +305,7 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
                 rejected += hits - seeds.len();
                 for seed in seeds {
                     evidence.push(Evidence {
-                        kind: "hash-counter-recipe".into(),
+                        kind: pack.header.recipe.evidence_kind().into(),
                         small_scalar: None,
                         recipe: Some(pack.header.recipe.clone()),
                         seed: Some(seed),
@@ -333,6 +340,7 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
         small_scalar_max_inclusive: small_max,
         input_certificates: inputs.certificates.len(),
         supported_ec_certificates: inputs.certificates.iter().filter(|c| c.curve.is_some()).count(),
+        ec_certificates: inputs.certificates.iter().filter(|c| c.curve.is_some()).cloned().collect(),
         unsupported_certificates: inputs.certificates.iter().filter(|c| c.curve.is_none()).cloned().collect(),
         distinct_ec_keys: keys.len(),
         covered_distinct_ec_keys: keys.keys().filter(|(c,_)| small_max > 0 || packs.iter().any(|p| p.header.recipe.curve == *c)).count(),

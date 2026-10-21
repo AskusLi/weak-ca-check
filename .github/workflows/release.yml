@@ -58,16 +58,19 @@ jobs:
       - run: rustup toolchain install 1.94.0 --profile minimal
       - run: cargo +1.94.0 build --release --locked
       - run: python3 scripts/build_starter.py
+      - run: python3 scripts/build_patterns.py
       - name: Independent recipe verification
         run: |
           python3 -m venv /tmp/weak-ca-reference
           /tmp/weak-ca-reference/bin/pip install 'cryptography==50.0.0'
           /tmp/weak-ca-reference/bin/python scripts/verify_reference.py
+          /tmp/weak-ca-reference/bin/python scripts/verify_reference.py --packs dist/patterns-100k-v1
       - run: tar -czf dist/starter-100k-v1.tar.gz -C dist starter-100k-v1
+      - run: tar -czf dist/patterns-100k-v1.tar.gz -C dist patterns-100k-v1
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: starter-packs
-          path: dist/starter-100k-v1.tar.gz
+          path: dist/*-v1.tar.gz
   publish:
     needs: [binaries, packs]
     runs-on: ubuntu-24.04
