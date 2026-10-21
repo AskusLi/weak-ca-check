@@ -1,0 +1,32 @@
+[package]
+name = "weak-ca-check"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+description = "Offline checks for explicitly defined weak EC key-generation recipes"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.104"
+blake2 = "0.11.0"
+clap = { version = "4.6.7", features = ["derive"] }
+csv = "1.4.0"
+hex = "0.4.3"
+md-5 = "0.11.0"
+num-bigint = "0.5.1"
+num-traits = "0.2.19"
+p256 = { version = "0.14", default-features = false, features = ["arithmetic", "std", "precomputed-tables"] }
+p384 = { version = "0.14", default-features = false, features = ["arithmetic", "std", "precomputed-tables"] }
+p521 = { version = "0.14", default-features = false, features = ["arithmetic", "std", "precomputed-tables"] }
+rayon = "1.12.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha1 = "0.11.0"
+sha2 = "0.11.0"
+sha3 = "0.12.0"
+x509-parser = "0.18.1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

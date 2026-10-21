@@ -1,0 +1,13 @@
+{
+  "name": "starter-100k-v1",
+  "curves": ["p256", "p384", "p521"],
+  "hashes": [
+    "md5", "sha1", "sha224", "sha256", "sha384", "sha512",
+    "sha512-224", "sha512-256", "sha3-256", "sha3-384", "sha3-512",
+    "blake2b512", "blake2s256"
+  ],
+  "encoding": "decimal",
+  "start": 0,
+  "count": 100000,
+  "tag_bits": 24
+}

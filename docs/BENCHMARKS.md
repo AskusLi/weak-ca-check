@@ -1,0 +1,85 @@
+# Measured results, 2026-10-21
+
+Host: Intel Core i7-7700, 4 cores / 8 logical CPUs, Linux x86-64. Rust 1.94.0,
+release profile, thin LTO, one codegen unit, generic target CPU. The distributed
+Linux binary uses `x86_64-unknown-linux-musl` and is statically linked. Default
+Rayon thread count: 8. These measurements are observations on this host, rather
+than promises for other hardware.
+
+The table gives the median of seven complete process runs, with warm filesystem
+caches. Timing includes input parsing, pack integrity/ordering validation where
+applicable, key checks, and JSON report serialization/capture. The first two
+cases use no packs. The hash-only case disables the small-scalar rule.
+
+| Input / rules | Parsed certificates | Distinct supported EC keys | Median seconds |
+| --- | ---: | ---: | ---: |
+| eMudhra historical/incident set, scalars 1–1,000,000 | 51 | 24 | 0.020 |
+| Revoked CCADB snapshot, scalars 1–1,000,000 | 2,946 | 298 | 0.237 |
+| Same snapshot, small scalars + all 39 starter packs | 2,946 | 298 | 0.602 |
+| Same snapshot, all 39 starter packs only | 2,946 | 298 | 0.483 |
+
+The earlier independent Python/OpenSSL exhaustive one-million-scalar check on
+the same 51-certificate eMudhra set took 476.22 seconds. The Rust result agreed
+exactly on all 16 matching certificate fingerprints and eight distinct weak
+keys. The speed difference includes a major **algorithm change**: exhaustive
+scalar multiplication was replaced with baby-step giant-step and batch point
+normalization. It must not be attributed to the programming language alone.
+
+## Dataset and coverage
+
+Source: [CCADB revoked intermediates with PEM](https://ccadb.my.salesforce-sites.com/mozilla/PublicIntermediateCertsRevokedWithPEMCSV),
+downloaded on 2026-10-21. SHA-256:
+
+```text
+e018c7daea2262ec7cbbd116b67f9b18e75d9de3d77d47728c3bc9ad5f9180c5
+```
+
+The snapshot contains 2,961 rows from 71 CA owners. Fifteen rows have no PEM
+certificate (`PEM Info` contains only quotes); CCADB lists them as RSA-2048
+records. They remain input errors in the report, so these dataset runs correctly
+return exit status 1. Of 2,946 successfully parsed certificates, 357 contain
+supported EC keys: 114 P-256, 239 P-384 and four P-521 certificates. Deduplication
+leaves 298 EC public points. The other 2,589 parsed certificates are explicitly
+outside this EC check. Reported coverage must not be described as an RSA audit
+or a survey of all currently trusted CAs.
+
+The million-scalar check found eight weak P-384 public keys across 16
+certificates: eight eMudhra records and eight Sectigo cross-signatures. They
+correspond to the known incident controls. The older eMudhra group contains
+16 distinct EC keys; none matched this interval. No additional small-scalar
+matches appeared elsewhere in this snapshot. No hash-counter recipe matches
+appeared. The pack lookup encountered 30 truncated-tag collisions across the
+298 targets and rejected all of them by full-point verification.
+
+These are bounded results. A negative result does not establish sufficient
+entropy, or rule out other scalar mappings, encodings, PRNGs, curves or ranges.
+The snapshot and reported revocation dates do not independently establish when
+a key became vulnerable or whether an older CA compromise occurred.
+
+## Starter pack costs
+
+`starter-100k-v1` contains 39 recipe/curve combinations, each enumerating decimal
+seeds 0–99,999. Together they hold 3.9 million records in **23,411,166 bytes**,
+excluding the manifest and external checksums. Each record is six bytes.
+The P-384/SHA-256 pack is 600,285 bytes. Its initial build took 4.030 seconds;
+the sum of individual generation times for the complete set was 134.371
+seconds. A concurrent compiler ran during part of generation; this is not an
+isolated throughput benchmark. Individual pack times ranged from 1.104 to
+6.593 seconds across the different curves/hashes.
+
+The generator emits deterministic packs; generation time is deliberately not
+embedded in the manifest or pack. The manifest records exact recipes, record
+counts, file sizes and whole-file SHA-256 checksums.
+
+## Independent verification
+
+All 13 Rust unit tests pass for both the native Linux and static musl builds.
+The tests include Python/OpenSSL reference points on all three curves and
+Python `hashlib` reference digests for all supported hash functions.
+`scripts/verify_reference.py` additionally generated 39 temporary synthetic
+test certificates using Python `cryptography` 50.0.0, one at seed 99,999 of
+each starter recipe. Both compiled binaries reported exactly the expected
+39 recipe/seed matches. No private-key files were written.
+
+macOS and Windows release jobs are provided in the workflow. They have not
+been executed locally, and no binaries for those platforms are claimed here.

@@ -1,0 +1,23 @@
+[
+  {
+    "curve": "p384",
+    "hash": "sha256",
+    "encoding": "decimal",
+    "seed": 0,
+    "point": "027a00cb1a64e561e19bf87f1b350dc7e86c7a79ad065ca4a53692cabfe0a54c75d4d2d4c905655d755b37f64f6c179dac"
+  },
+  {
+    "curve": "p256",
+    "hash": "sha384",
+    "encoding": "u32le",
+    "seed": 42,
+    "point": "0293fe1a789b1cc470921c592f36eea0a85d17f5bd2acdb0b5c9992d98427f1996"
+  },
+  {
+    "curve": "p521",
+    "hash": "sha512",
+    "encoding": "u64be",
+    "seed": 99999,
+    "point": "03014adb60a7a3fa1b84a2ba2877198e85d517b39dace53549232bc869b3d250008159638d2c487a053e6fd88050a676b439656cdd20709388e7ad7ea7248ab72263d7"
+  }
+]
