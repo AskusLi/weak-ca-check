@@ -1,5 +1,6 @@
 /target/
 /dist/
-/packs/*.wkp
+*.wkp
+*.wkdb
 /reports/
 /datasets/

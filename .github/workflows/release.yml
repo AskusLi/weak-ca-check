@@ -20,7 +20,7 @@ jobs:
             exe: weak-ca-check
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
         run: rustup toolchain install 1.94.0 --profile minimal --target ${{ matrix.target }}
       - name: Install musl tools
@@ -28,7 +28,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: cargo +1.94.0 test --release --locked --target ${{ matrix.target }}
       - run: cargo +1.94.0 build --release --locked --target ${{ matrix.target }}
-      - run: python scripts/license_notices.py --target ${{ matrix.target }}
+      - run: cargo +1.94.0 run --release --locked --example license-notices -- --target ${{ matrix.target }}
       - name: Package binary
         shell: bash
         env:
@@ -45,39 +45,34 @@ jobs:
           else
             tar -czf "weak-ca-check-$TARGET.tar.gz" "$EXE" README.md LICENSE docs THIRD_PARTY_NOTICES.txt
           fi
-      - uses: actions/upload-artifact@v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: binary-${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
-  packs:
+  database:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: rustup toolchain install 1.94.0 --profile minimal
       - run: cargo +1.94.0 build --release --locked
-      - run: python3 scripts/build_starter.py
-      - run: python3 scripts/build_patterns.py
-      - name: Independent recipe verification
-        run: |
-          python3 -m venv /tmp/weak-ca-reference
-          /tmp/weak-ca-reference/bin/pip install 'cryptography==50.0.0'
-          /tmp/weak-ca-reference/bin/python scripts/verify_reference.py
-          /tmp/weak-ca-reference/bin/python scripts/verify_reference.py --packs dist/patterns-100k-v1
-      - run: tar -czf dist/starter-100k-v1.tar.gz -C dist starter-100k-v1
-      - run: tar -czf dist/patterns-100k-v1.tar.gz -C dist patterns-100k-v1
-      - uses: actions/upload-artifact@v7.0.2
+      - run: cargo +1.94.0 test --release --locked
+      - run: target/release/weak-ca-check build-db --output dist/all-100k-v1.wkdb
+      - run: target/release/weak-ca-check inspect dist/all-100k-v1.wkdb > dist/all-100k-v1.manifest.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: starter-packs
-          path: dist/*-v1.tar.gz
+          name: database
+          path: |
+            dist/all-100k-v1.wkdb
+            dist/all-100k-v1.manifest.json
   publish:
-    needs: [binaries, packs]
+    needs: [binaries, database]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: artifacts
           merge-multiple: true
@@ -88,6 +83,6 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           cd artifacts
-          sha256sum *.tar.gz *.zip > SHA256SUMS
+          sha256sum *.tar.gz *.zip *.wkdb *.manifest.json > SHA256SUMS
           gh release create "$TAG" ./* --draft --title "$TAG" --generate-notes
           gh release edit "$TAG" --draft=false

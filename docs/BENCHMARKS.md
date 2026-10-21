@@ -76,7 +76,7 @@ counts, file sizes and whole-file SHA-256 checksums.
 All 13 Rust unit tests pass for both the native Linux and static musl builds.
 The tests include Python/OpenSSL reference points on all three curves and
 Python `hashlib` reference digests for all supported hash functions.
-`scripts/verify_reference.py` additionally generated 39 temporary synthetic
+The historical reference harness additionally generated 39 temporary synthetic
 test certificates using Python `cryptography` 50.0.0, one at seed 99,999 of
 each starter recipe. Both compiled binaries reported exactly the expected
 39 recipe/seed matches. No private-key files were written.
@@ -102,3 +102,15 @@ P-384/SHA-256 100k hash pack reproduced its original whole-file SHA-256 exactly:
 
 See [the current public CA scan](CURRENT_CA_SCAN.md) for the broader inventory
 coverage and bounded results.
+
+## Version 0.3 production layout
+
+The production CLI, database builders, CCADB importer, release-license helper
+and tests are Rust. The earlier scripting helpers were removed. Static public
+certificate fixtures retain the independent reference values without a runtime
+dependency on their generation environment.
+
+The unified database contains 69 packs: 39 hash-counter combinations and 30
+pattern combinations. It holds 5,497,449 candidate records in 32,611,938 bytes,
+including the database index and all embedded pack metadata. Exact sizes,
+counts and checksums are emitted by `inspect`; see the current release manifest.

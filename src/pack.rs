@@ -49,15 +49,16 @@ macro_rules! pattern_records {
         fn $name(recipe: &Recipe, tag_bytes: u8) -> Result<Vec<Record>> {
             let order = recipe.curve.order();
             let pattern = recipe.pattern().context("expected pattern recipe")?;
-            let step = pattern
-                .multiplier(recipe.curve)
-                .map(|m| {
-                    let bytes = recipe.curve.point(&(m % &order))?;
-                    Ok::<_, anyhow::Error>($curve::ProjectivePoint::from(
-                        *$curve::PublicKey::from_sec1_bytes(&bytes)?.as_affine(),
-                    ))
-                })
-                .transpose()?;
+            let (double, increment) = pattern.recurrence(recipe.curve);
+            let reduced = increment % &order;
+            let step = if reduced == num_bigint::BigUint::from(0u8) {
+                $curve::ProjectivePoint::IDENTITY
+            } else {
+                let bytes = recipe.curve.point(&reduced)?;
+                $curve::ProjectivePoint::from(
+                    *$curve::PublicKey::from_sec1_bytes(&bytes)?.as_affine(),
+                )
+            };
             let chunks: Result<Vec<Vec<Record>>> = (0..recipe.count.div_ceil(2048))
                 .into_par_iter()
                 .map(|chunk| {
@@ -72,11 +73,10 @@ macro_rules! pattern_records {
                     let mut points = Vec::with_capacity((end - start) as usize);
                     for _ in start..end {
                         points.push(point);
-                        if let Some(step) = step {
-                            point += step;
-                        } else {
+                        if double {
                             point += point;
                         }
+                        point += step;
                     }
                     let affine = <$curve::ProjectivePoint as BatchNormalize<
                         [$curve::ProjectivePoint],
@@ -85,17 +85,12 @@ macro_rules! pattern_records {
                         .iter()
                         .zip(start..end)
                         .filter_map(|(point, seed)| {
-                            // All linear multipliers are nonzero modulo the prime order;
-                            // their only zero in the supported uint32 range is seed zero.
-                            if step.is_some() && seed == 0 {
+                            let encoded = point.to_sec1_point(true);
+                            if encoded.as_bytes() == [0] {
                                 return None;
                             }
                             Some(Record {
-                                tag: tag(
-                                    recipe.curve,
-                                    point.to_sec1_point(true).as_bytes(),
-                                    tag_bytes,
-                                ),
+                                tag: tag(recipe.curve, encoded.as_bytes(), tag_bytes),
                                 seed: seed as u32,
                             })
                         })
@@ -176,6 +171,10 @@ fn encode(header: &Header, records: &[Record]) -> Result<Vec<u8>> {
 }
 
 impl Pack {
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
     pub fn open(path: &Path) -> Result<Self> {
         Self::from_bytes(fs::read(path).with_context(|| format!("read {}", path.display()))?)
             .with_context(|| format!("invalid pack {}", path.display()))
@@ -306,19 +305,13 @@ mod tests {
     #[test]
     fn fast_patterns_match_scalar_multiplication_across_chunks() -> Result<()> {
         for curve in [Curve::P256, Curve::P384, Curve::P521] {
-            for pattern in [
-                Pattern::RepeatByte,
-                Pattern::RepeatU16be,
-                Pattern::PrefixU32be,
-                Pattern::OrderMinusCounter,
-                Pattern::SingleBit,
-            ] {
+            for pattern in Pattern::ALL {
                 let count = pattern.limit(curve).min(4100);
                 let recipe = Recipe::patterned(curve, pattern, 0, count);
                 let pack = Pack::from_bytes(generate(recipe.clone(), 3)?)?;
                 assert_eq!(
                     pack.len() as u64,
-                    count - u64::from(pattern != Pattern::SingleBit)
+                    count - u64::from(recipe.scalar(0, &curve.order()).is_none())
                 );
                 for seed in [0, 1, 2, 255, 2047, 2048, 2049, count as u32 - 1] {
                     if u64::from(seed) < count

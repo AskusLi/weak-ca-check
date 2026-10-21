@@ -1,10 +1,14 @@
+mod database;
+mod inventory;
+mod output;
 mod pack;
 mod recipe;
 mod scan;
 mod small;
 
 use anyhow::{Result, ensure};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
+use database::Database;
 use recipe::{Curve, Hash, Pattern, Recipe, SeedEncoding};
 use std::{fs, path::PathBuf, time::Instant};
 
@@ -14,6 +18,9 @@ use std::{fs, path::PathBuf, time::Instant};
     about = "Offline checks for defined weak EC key-generation recipes"
 )]
 struct Args {
+    /// Replace existing output files. By default outputs are published without overwriting.
+    #[arg(long, global = true)]
+    force: bool,
     /// Worker threads; defaults to available CPUs.
     #[arg(long, global = true)]
     threads: Option<usize>,
@@ -21,8 +28,64 @@ struct Args {
     command: Command,
 }
 
+#[derive(ClapArgs, Default)]
+struct PackInputs {
+    /// Candidate pack; repeat to combine packs.
+    #[arg(long)]
+    pack: Vec<PathBuf>,
+    /// Load all .wkp files directly inside a directory; repeat as needed.
+    #[arg(long)]
+    pack_dir: Vec<PathBuf>,
+    /// A unified database containing multiple recipes; repeat to combine databases.
+    #[arg(long, alias = "database")]
+    db: Vec<PathBuf>,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum Suite {
+    All,
+    Hashes,
+    Patterns,
+}
+
 #[derive(Subcommand)]
 enum Command {
+    /// Build one self-describing database from selected curves and recipes.
+    BuildDb {
+        #[arg(long, value_enum, default_value = "all")]
+        suite: Suite,
+        #[arg(long, value_enum, default_values = ["p256", "p384", "p521"])]
+        curve: Vec<Curve>,
+        #[arg(long, value_enum)]
+        hash: Vec<Hash>,
+        #[arg(long, value_enum, default_value = "decimal")]
+        encoding: Vec<SeedEncoding>,
+        #[arg(long, value_enum)]
+        pattern: Vec<Pattern>,
+        /// Maximum seeds per recipe, further limited by each pattern's domain.
+        #[arg(long, default_value_t = 100_000)]
+        count: u64,
+        #[arg(long, default_value_t = 24)]
+        tag_bits: u8,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Combine packs and databases into one file, deduplicating identical packs.
+    MergeDb {
+        #[command(flatten)]
+        inputs: PackInputs,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Join downloaded CCADB metadata and PEM CSVs by certificate fingerprint.
+    ImportCcadb {
+        #[arg(long)]
+        inventory: PathBuf,
+        #[arg(long, required = true)]
+        pem: Vec<PathBuf>,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Generate a deterministic compact hash-counter candidate pack.
     Generate {
         #[arg(long, value_enum)]
@@ -59,12 +122,8 @@ enum Command {
     },
     /// Check public certificates in files, directories or a CCADB CSV.
     Check {
-        /// Repeat for multiple candidate packs.
-        #[arg(long)]
-        pack: Vec<PathBuf>,
-        /// Load every .wkp file directly inside each directory.
-        #[arg(long)]
-        pack_dir: Vec<PathBuf>,
+        #[command(flatten)]
+        inputs: PackInputs,
         /// Inclusive small-scalar bound; zero disables this rule.
         #[arg(long, default_value_t = 1_000_000)]
         small_max: u32,
@@ -86,12 +145,9 @@ enum Command {
     Recipes,
 }
 
-fn write_output(path: Option<PathBuf>, bytes: &[u8]) -> Result<()> {
+fn write_output(path: Option<PathBuf>, bytes: &[u8], force: bool) -> Result<()> {
     if let Some(path) = path {
-        if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, bytes)?;
+        output::write(&path, bytes, force)?;
     } else {
         use std::io::Write;
         std::io::stdout().lock().write_all(bytes)?;
@@ -99,8 +155,128 @@ fn write_output(path: Option<PathBuf>, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+fn read_packs(inputs: PackInputs) -> Result<Vec<pack::Pack>> {
+    let mut paths = inputs.pack;
+    for directory in inputs.pack_dir {
+        let mut count = 0;
+        for entry in fs::read_dir(&directory)? {
+            let entry = entry?;
+            if entry.file_type()?.is_file() && entry.path().extension().is_some_and(|e| e == "wkp")
+            {
+                paths.push(entry.path());
+                count += 1;
+            }
+        }
+        ensure!(count > 0, "no .wkp packs in {}", directory.display());
+    }
+    paths.sort();
+    paths.dedup();
+    let mut packs: Vec<_> = paths
+        .iter()
+        .map(|p| pack::Pack::open(p))
+        .collect::<Result<_>>()?;
+    for path in inputs.db {
+        packs.extend(Database::open(&path)?.packs);
+    }
+    let unique: std::collections::BTreeMap<_, _> =
+        packs.into_iter().map(|p| (p.sha256.clone(), p)).collect();
+    Ok(unique.into_values().collect())
+}
+
 fn run(args: Args) -> Result<i32> {
     match args.command {
+        Command::BuildDb {
+            suite,
+            curve,
+            hash,
+            encoding,
+            pattern,
+            count,
+            tag_bits,
+            output,
+        } => {
+            ensure!(
+                [24, 32, 48, 64].contains(&tag_bits),
+                "--tag-bits must be 24, 32, 48 or 64"
+            );
+            ensure!(
+                (1..=u64::from(u32::MAX) + 1).contains(&count),
+                "count must be within 1..=2^32"
+            );
+            ensure!(
+                !matches!(suite, Suite::Patterns) || hash.is_empty(),
+                "--hash requires the hashes or all suite"
+            );
+            ensure!(
+                !matches!(suite, Suite::Hashes) || pattern.is_empty(),
+                "--pattern requires the patterns or all suite"
+            );
+            let hashes = if hash.is_empty() {
+                Hash::value_variants().to_vec()
+            } else {
+                hash
+            };
+            let patterns = if pattern.is_empty() {
+                Pattern::ALL.to_vec()
+            } else {
+                pattern
+            };
+            let mut packs = Vec::new();
+            let started = Instant::now();
+            for curve in curve {
+                if !matches!(suite, Suite::Patterns) {
+                    for hash in &hashes {
+                        for encoding in &encoding {
+                            eprintln!("Generating {curve:?}/{hash:?}/{encoding:?}");
+                            let recipe = Recipe {
+                                curve,
+                                hash: Some(*hash),
+                                encoding: Some(*encoding),
+                                mapping: "digest-be-mod-order-v1".into(),
+                                start: 0,
+                                count,
+                            };
+                            packs.push(pack::Pack::from_bytes(pack::generate(
+                                recipe,
+                                tag_bits / 8,
+                            )?)?);
+                        }
+                    }
+                }
+                if !matches!(suite, Suite::Hashes) {
+                    for pattern in &patterns {
+                        eprintln!("Generating {curve:?}/{pattern:?}");
+                        let recipe =
+                            Recipe::patterned(curve, *pattern, 0, count.min(pattern.limit(curve)));
+                        packs.push(pack::Pack::from_bytes(pack::generate(
+                            recipe,
+                            tag_bits / 8,
+                        )?)?);
+                    }
+                }
+            }
+            Database::write(&output, &packs, args.force)?;
+            eprintln!(
+                "Database written in {:.3}s",
+                started.elapsed().as_secs_f64()
+            );
+            Ok(0)
+        }
+        Command::MergeDb { inputs, output } => {
+            let packs = read_packs(inputs)?;
+            Database::write(&output, &packs, args.force)?;
+            eprintln!("Combined {} unique packs", packs.len());
+            Ok(0)
+        }
+        Command::ImportCcadb {
+            inventory: path,
+            pem,
+            output,
+        } => {
+            let bytes = inventory::join(&path, &pem)?;
+            write_output(Some(output), &bytes, args.force)?;
+            Ok(0)
+        }
         Command::Generate {
             curve,
             hash,
@@ -126,7 +302,7 @@ fn run(args: Args) -> Result<i32> {
             eprintln!("Generating {count} candidate seeds for {curve:?}/{hash:?}/{encoding:?}");
             let bytes = pack::generate(recipe, tag_bits / 8)?;
             let pack = pack::Pack::from_bytes(bytes.clone())?;
-            write_output(Some(output), &bytes)?;
+            write_output(Some(output), &bytes, args.force)?;
             eprintln!(
                 "{} records, {} bytes, {:.3}s, SHA-256 {}",
                 pack.len(),
@@ -158,7 +334,7 @@ fn run(args: Args) -> Result<i32> {
             let started = Instant::now();
             let bytes = pack::generate(recipe, tag_bits / 8)?;
             let pack = pack::Pack::from_bytes(bytes.clone())?;
-            write_output(Some(output), &bytes)?;
+            write_output(Some(output), &bytes, args.force)?;
             eprintln!(
                 "{} records, {} bytes, {:.3}s, SHA-256 {}",
                 pack.len(),
@@ -169,8 +345,7 @@ fn run(args: Args) -> Result<i32> {
             Ok(0)
         }
         Command::Check {
-            pack: mut paths,
-            pack_dir,
+            inputs,
             small_max,
             ccadb,
             cert,
@@ -179,34 +354,16 @@ fn run(args: Args) -> Result<i32> {
             mut certificates,
         } => {
             certificates.extend(cert);
-            for directory in pack_dir {
-                let mut count = 0;
-                for entry in fs::read_dir(&directory)? {
-                    let entry = entry?;
-                    if entry.file_type()?.is_file()
-                        && entry.path().extension().is_some_and(|e| e == "wkp")
-                    {
-                        paths.push(entry.path());
-                        count += 1;
-                    }
-                }
-                ensure!(count > 0, "no .wkp packs in {}", directory.display());
-            }
-            paths.sort();
-            paths.dedup();
+            let started = Instant::now();
+            let packs = read_packs(inputs)?;
             ensure!(
-                small_max > 0 || !paths.is_empty(),
+                small_max > 0 || !packs.is_empty(),
                 "select a small-scalar rule or at least one pack"
             );
             ensure!(
                 ccadb.is_some() || !certificates.is_empty(),
                 "supply certificates or --ccadb"
             );
-            let started = Instant::now();
-            let packs: Vec<_> = paths
-                .iter()
-                .map(|p| pack::Pack::open(p))
-                .collect::<Result<_>>()?;
             let inputs = scan::load(&certificates, ccadb.as_deref())?;
             let report = scan::check(inputs, &packs, small_max)?;
             let has_matches = !report.findings.is_empty();
@@ -222,7 +379,7 @@ fn run(args: Args) -> Result<i32> {
             );
             let mut bytes = serde_json::to_vec_pretty(&report)?;
             bytes.push(b'\n');
-            write_output(output, &bytes)?;
+            write_output(output, &bytes, args.force)?;
             Ok(if has_errors {
                 1
             } else if fail_on_match && has_matches {
@@ -232,12 +389,22 @@ fn run(args: Args) -> Result<i32> {
             })
         }
         Command::Inspect { pack: path } => {
+            if Database::is_database(&path)? {
+                let db = Database::open(&path)?;
+                let packs: Vec<_> = db.packs.iter().map(|p| serde_json::json!({"header": p.header, "file_bytes": p.byte_len(), "sha256": p.sha256})).collect();
+                let mut bytes = serde_json::to_vec_pretty(
+                    &serde_json::json!({"format": "WKDB0001", "sha256": db.sha256, "file_bytes": db.bytes, "packs": packs}),
+                )?;
+                bytes.push(b'\n');
+                write_output(None, &bytes, args.force)?;
+                return Ok(0);
+            }
             let pack = pack::Pack::open(&path)?;
             let mut bytes = serde_json::to_vec_pretty(&serde_json::json!({
                 "header": pack.header, "file_bytes": pack.byte_len(), "sha256": pack.sha256,
             }))?;
             bytes.push(b'\n');
-            write_output(None, &bytes)?;
+            write_output(None, &bytes, args.force)?;
             Ok(0)
         }
         Command::Recipes => {
@@ -287,5 +454,100 @@ fn main() {
             eprintln!("error: {error:#}");
             std::process::exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn independent_certificates_match_all_recipes_through_database_and_certificate_cli()
+    -> Result<()> {
+        let fixtures =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/reference-certificates");
+        let index: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../tests/reference-certificates/index.json"))?;
+        let dir = std::env::temp_dir().join(format!("weak-ca-reference-{}", std::process::id()));
+        fs::create_dir_all(&dir)?;
+        let db_path = dir.join("reference.wkdb");
+        let mut packs = Vec::new();
+        for item in &index {
+            let mut recipe: Recipe = serde_json::from_value(item["recipe"].clone())?;
+            recipe.start = item["seed"].as_u64().unwrap() as u32;
+            recipe.count = 1;
+            assert_eq!(
+                hex::encode(recipe.point(recipe.start)?.unwrap()),
+                item["point"].as_str().unwrap()
+            );
+            packs.push(pack::Pack::from_bytes(pack::generate(recipe, 3)?)?);
+        }
+        Database::write(&db_path, &packs, true)?;
+        let report_path = dir.join("report.json");
+        let args = Args::try_parse_from([
+            "weak-ca-check",
+            "--force",
+            "check",
+            "--db",
+            db_path.to_str().unwrap(),
+            "--small-max",
+            "0",
+            "--fail-on-match",
+            "--output",
+            report_path.to_str().unwrap(),
+            fixtures.to_str().unwrap(),
+        ])?;
+        assert_eq!(run(args)?, 2);
+        let report: serde_json::Value = serde_json::from_slice(&fs::read(&report_path)?)?;
+        assert_eq!(
+            report["input_certificates"].as_u64(),
+            Some(index.len() as u64)
+        );
+        assert!(report["input_errors"].as_array().unwrap().is_empty());
+        assert_eq!(
+            report["candidate_packs"].as_array().unwrap().len(),
+            index.len()
+        );
+        for item in &index {
+            let finding = report["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|f| {
+                    f["certificates"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|c| c["certificate_sha256"] == item["certificate_sha256"])
+                })
+                .expect("reference certificate must be detected");
+            assert!(finding["evidence"].as_array().unwrap().iter().any(|e| {
+                e["seed"] == item["seed"]
+                    && e["recipe"]["mapping"] == item["recipe"]["mapping"]
+                    && e["recipe"]["hash"] == item["recipe"]["hash"]
+                    && e["recipe"]["curve"] == item["recipe"]["curve"]
+            }));
+        }
+        let one = fixtures.join(index[0]["file"].as_str().unwrap());
+        let args = Args::try_parse_from([
+            "weak-ca-check",
+            "--force",
+            "check",
+            "--db",
+            db_path.to_str().unwrap(),
+            "--small-max",
+            "0",
+            "--cert",
+            one.to_str().unwrap(),
+            "--fail-on-match",
+            "--output",
+            report_path.to_str().unwrap(),
+        ])?;
+        assert_eq!(run(args)?, 2);
+        let report: serde_json::Value = serde_json::from_slice(&fs::read(report_path)?)?;
+        assert_eq!(report["input_certificates"], 1);
+        assert_eq!(report["findings"].as_array().unwrap().len(), 1);
+        fs::remove_dir_all(dir)?;
+        Ok(())
     }
 }

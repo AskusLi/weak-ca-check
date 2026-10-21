@@ -1,0 +1,908 @@
+[
+  {
+    "file": "p256-md5.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "md5",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02381faa64a7338c8c154ed0e7bebc210eacab006fa9ca1122f2a843fd3bf0b49c",
+    "certificate_sha256": "fb0579d13c43ca46f6656d345990a9730b9077ca78ed0c62ae4bb41d3cdf3ec9"
+  },
+  {
+    "file": "p256-sha1.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha1",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0398aa54101bc9900efb6266033963cf5bf7112bdfe1568ff83a68534ba0cadc2e",
+    "certificate_sha256": "bb36f9cdd44d7942ddaa9c1acbb5088f099a809f96c27a160c375a168c5d3eeb"
+  },
+  {
+    "file": "p256-sha224.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02bc93f3a80e32254945b2bb127c1286a874b8eafd4e41750ce7e7bdc50dd35443",
+    "certificate_sha256": "dad4d3eab0a170476c68dc092a334817646130c1c195f23dcffee2f6bb84b690"
+  },
+  {
+    "file": "p256-sha256.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02e47f267fe64c5cf7a39d35a2a2b309e7bdbd2e6c10d958a01a44e318acedf731",
+    "certificate_sha256": "d75a4e74874d39c1e31733d89fce512296553cc85423dcd6e6254eff84282708"
+  },
+  {
+    "file": "p256-sha384.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0208042df0e6cf3cb0b5813b5c1e36d4cf7f4c1f7e8afbbe720edf674112979467",
+    "certificate_sha256": "5b1e74dc2bf5ef96908fc62b288d055ffe1b32cbb8591eacf307836318501f28"
+  },
+  {
+    "file": "p256-sha512.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "036ca60c96ff56429a03a56abfcd4f2a3c9eb2ca3e3215c29b2d8733697f927706",
+    "certificate_sha256": "dd9a9012140d06e491114fc791fc071cb0ae996ca90db5170f7cb1c7ef690663"
+  },
+  {
+    "file": "p256-sha512-224.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha512-224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "031b7eda9be86a081c0edfeb8e526a36c3b47ed7fcc8dd6cd7e9bec1f0c797ce68",
+    "certificate_sha256": "a2bec078db873d2ada7933551f7082fd8d42d1f4ebb99f8b8d2b27bbe4f7f4dc"
+  },
+  {
+    "file": "p256-sha512-256.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha512-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02f13cad947114ec5c3565fee44c4ae079b891771170404bbc423197ccb47ab253",
+    "certificate_sha256": "e55e1aab29817a5b69e7f1b2dc0a2ee27d8bbfa6caaeb5d48e7a639f1170d72d"
+  },
+  {
+    "file": "p256-sha3-256.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha3-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02ba68aa0750c190237db7cb2052bb604f73b8263a2874af62e4eeb9732edfc20e",
+    "certificate_sha256": "feb00b181b4b91b7e5827e394a2de46ee49f54cf56ae714a71b3ceb47f37c0bd"
+  },
+  {
+    "file": "p256-sha3-384.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha3-384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02632ee4a2b051bd9d2ff7d45d2f516b87bb8c59cd001b83fd3d41f764ee5788ac",
+    "certificate_sha256": "f54cdba191a24f0c094ed6d98a54fc5307601707f00928975bf36f51028f2623"
+  },
+  {
+    "file": "p256-sha3-512.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "sha3-512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "035e50e1c648113edca946d5d1e5c57209116c12d5940588e7e291915c7f42c757",
+    "certificate_sha256": "5e3436b2183c2bb12bdfc5d0c268e5d66e55239f53812382b0dc09285da9d15f"
+  },
+  {
+    "file": "p256-blake2b512.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "blake2b512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0272d3fb566f210060646a5264d8ca5fa84c851e2940b3792ba7639c4cc79828cd",
+    "certificate_sha256": "570c4801d2a488932be8b6611c17e0418ebb30812a60aef60c4ec49a316095c6"
+  },
+  {
+    "file": "p256-blake2s256.pem",
+    "recipe": {
+      "curve": "p256",
+      "hash": "blake2s256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "038f4d7594bacaf937964030267276a39ea88d304ff819d185f551cb09c8a7b7cb",
+    "certificate_sha256": "842515eb6e0699decd1280cb156a4042e23571e3c544cda6c44a745302ece4b7"
+  },
+  {
+    "file": "p256-repeat-byte.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "repeat-byte-mod-order-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "03f72cbd240e26c0d21b1023179586eb532c6102c49c3677cc1a3d132b9db9d31a",
+    "certificate_sha256": "67685f03a05032812c0fbcb6b0f97b4573f41e52b88c1b9fd6798d3a72c0797a"
+  },
+  {
+    "file": "p256-repeat-u16be.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "repeat-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "03f72cbd240e26c0d21b1023179586eb532c6102c49c3677cc1a3d132b9db9d31a",
+    "certificate_sha256": "e29a5bf606d59f25c4ff516fdd38937a4fe871e256354b92252960c405a0b909"
+  },
+  {
+    "file": "p256-prefix-u32be.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "prefix-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03802c2ada9349a416863131f42ec7969c12e45609a722d0d57c60024c163bd684",
+    "certificate_sha256": "364b24d15cf2aa8122be17b54e7cb194387486f7af01851839615ade1fee71e3"
+  },
+  {
+    "file": "p256-order-minus-counter.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "order-minus-counter-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03454d2213f58e121c813e40371c058f6873f7793d9b5d588c0ac64566dd869301",
+    "certificate_sha256": "e22df353903894e37b7887b4b05e3c03cab86acc73ff6bc5c9cc397abad05905"
+  },
+  {
+    "file": "p256-single-bit.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "single-bit-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "0377b20a912e6b23135066e911891524bc4efe3560e3e92350b52dec8f375f2b54",
+    "certificate_sha256": "d08b8f7750bcd103c7a300dd6870bd30ddcc661a77f775d2a84116eb2a32f775"
+  },
+  {
+    "file": "p256-repeat-u32be.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "repeat-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02c2946a2936efb88c6e248ede12077cbd481ac3bae469c109ca93d35a222ae76a",
+    "certificate_sha256": "a6858d72431980f7b37fec49ff69f7cbb8d1a41391a0b127b5d2e64f5663c89b"
+  },
+  {
+    "file": "p256-prefix-u16be.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "prefix-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "022210b8ed74fcf50802e15a6b0f84e77a2134ce2ca1fdeb303fbf41eb3a11370e",
+    "certificate_sha256": "980443b7092a9aa74b927eac63f054ad7cf9e2595436aef32846e9fed2ed0d86"
+  },
+  {
+    "file": "p256-low-ones.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "low-ones-mod-order-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "03f72cbd240e26c0d21b1023179586eb532c6102c49c3677cc1a3d132b9db9d31a",
+    "certificate_sha256": "21f9dcb1ca1873e7ef3e7c9f7793af8f38aa8197f8e88d4bc007b343e6c0cccd"
+  },
+  {
+    "file": "p256-all-ones-minus-counter.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "all-ones-minus-counter-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02999186c666ca1a4854c4da7e567edf0c1b7065a82fa09938b8e1e9ba27374f2f",
+    "certificate_sha256": "c3f2b295a4628473fc6ec7e8361ec628b2cb33c0fd5cd1305f21e0fd9276c001"
+  },
+  {
+    "file": "p256-clear-bit.pem",
+    "recipe": {
+      "curve": "p256",
+      "mapping": "clear-bit-mod-order-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "03c1d17269e46e387acbe299ec2cc9cc2dada3f05e4cf412f2ad946b700aa2613a",
+    "certificate_sha256": "1148d06fb5b68f461fdaacbe5f0ebd742a391b26ed8a330b233c4a062c172440"
+  },
+  {
+    "file": "p384-md5.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "md5",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "032087e5a103aa9dfe40d00b0302a008e8f29d386800762afef6ce3652a61d27e62ebd2f9e8349d9584f482e8ddd1ada27",
+    "certificate_sha256": "49cece7486cea61274bcccfacc3bc8bad1966b148e9df4815fdbed2a21e27037"
+  },
+  {
+    "file": "p384-sha1.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha1",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03e3a64b09eb5a4d5d2a91d7b219506805ae7e8d9a5368e8d94785d3ecbaf8cc7b535b6da72fe6c90d5f799e7d481267c9",
+    "certificate_sha256": "57f0b97ef5b8e043fc9baf748e24f96b8f1ab069145f935670ddb655ad7fba6c"
+  },
+  {
+    "file": "p384-sha224.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "025470ff5a57b45df04b2d384182d678f0e72351b457ffc92ac13854cb60adaac1521a828eaf66e92a32da7a54c5a18b4d",
+    "certificate_sha256": "4b71d2064a9881d709d2c506734bbaebeb66f57398b1694be5964381f980ea03"
+  },
+  {
+    "file": "p384-sha256.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03a19158cac28d12497abd6fdaea5e37679d33373c96897620366d68843f59d0a9c9062bbb1cb2ce2c26beeddd378e6a78",
+    "certificate_sha256": "82a02a0e8076dd16775fa347e1deaefe57b8ec6c9903c63e33ea415b1e40002f"
+  },
+  {
+    "file": "p384-sha384.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "032c83aaaafc74802035a249c7e75805b9a0e6f4efdcdcc662bec63d65e33529085b8c832a4d2685e164779ded5fdd6b2e",
+    "certificate_sha256": "726401998bc01ff780df0cccdd5004c1229b64ba129b240afd8acfa66535de9e"
+  },
+  {
+    "file": "p384-sha512.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "034977804870c902181c666843e63738aa4d7b1e5140fb7ee4675a833db4887ac076314bc5424cfaaf4c7cd5c3b7294540",
+    "certificate_sha256": "acb274e94cd7544ed0efafb01e179e3d1a7cd56af48c43be6c961e6275c3786a"
+  },
+  {
+    "file": "p384-sha512-224.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha512-224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0380a6df491991ec0eb86d46be08e2b0bdc3f9bc6eadea69609c434ce30af413f35c0e0475e605559f11c36422a0428cd7",
+    "certificate_sha256": "1f77f3f8ae85a650f23b9aac4d47358e1c2720a59786c81bc0cd077183cb3093"
+  },
+  {
+    "file": "p384-sha512-256.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha512-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0258ad1863b82f6617ee99829934acf892becadd22ffac6913c5321556e9e619f0b566fe98577f747f52e6210dafe223dd",
+    "certificate_sha256": "9581fcd1c7d944b072d22ccdfdf842b3cb08ef3d5d94c04a9712aef9b3fe972b"
+  },
+  {
+    "file": "p384-sha3-256.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha3-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0316950bd4c1ee354152a59ad78d81897236a5960d1ce7a259e22fd2ed27a9b0945827d555bd4d74612c17840569ea6380",
+    "certificate_sha256": "ac61467c9b17328566e13433304310f5bf72a525e778467cafefcecdf26000b5"
+  },
+  {
+    "file": "p384-sha3-384.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha3-384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03bb2962204bd5690835bbcd1f838739eff276160b7093848c53e5085ebbbd614727aa36ef1b744adfabab2317ea081fcf",
+    "certificate_sha256": "669c272ea68c8be52836a3c8d7305c7eee5315378f7296e5b58e9b1aaeaab1c1"
+  },
+  {
+    "file": "p384-sha3-512.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "sha3-512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "038b1ebd6f28b773e9699b4c011db9175ba87b9f4b80effcea2ce00e17bcc2d7b27564437494991a0af8e4b5b83b222e8a",
+    "certificate_sha256": "b9f0b9b4ed9d8e38ac7d5a6ed3d8aab95c515b9925561327e667e2ffa293c288"
+  },
+  {
+    "file": "p384-blake2b512.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "blake2b512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03533e52521c00403ce7ddb6af2ad94c11d424afea068ed57c5f823fd85733eaa9d799fb21a924d9cc5aab51cb84c818ea",
+    "certificate_sha256": "fb9a23bd0bd16e244f368bce5c866adfeff5eb715c088ee669b6762ec6d6761b"
+  },
+  {
+    "file": "p384-blake2s256.pem",
+    "recipe": {
+      "curve": "p384",
+      "hash": "blake2s256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "023a5eec7d961644f5bf13bd2b61b352169f0ba2aa33b3579413c72c35cd30f8c507c4c27e9cae319c21016f387903098f",
+    "certificate_sha256": "45f06d919e6cf536e03b5dc88579cd1f7b3abd96b6e290449aa599bc1b2c45bb"
+  },
+  {
+    "file": "p384-repeat-byte.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "repeat-byte-mod-order-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "038e32381850a570e53d52786a71e833a22cf810c0c2d8f8414ed61004d6a8ae364a3ac516938f22508fce11b165b6bf3b",
+    "certificate_sha256": "cd2579d8415824ac53d32a9106c6b8b64f031df09c5810ffca9af9d0e34713fa"
+  },
+  {
+    "file": "p384-repeat-u16be.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "repeat-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "038e32381850a570e53d52786a71e833a22cf810c0c2d8f8414ed61004d6a8ae364a3ac516938f22508fce11b165b6bf3b",
+    "certificate_sha256": "04f7137b9840e73b5cd9834550d7dc74cb8a54885cdabda7550cbb12858eee4c"
+  },
+  {
+    "file": "p384-prefix-u32be.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "prefix-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03f595b55618dfa6d8a4efda96c55edc7048f52046f5fb00f5c3c1596b4e1c2d906f3c7859937cacdf511b7068a0d7c9c5",
+    "certificate_sha256": "06e253f516dfb5ce9f99874c1d9c48eb6a6bd61b15f5288545e74e36d9893c40"
+  },
+  {
+    "file": "p384-order-minus-counter.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "order-minus-counter-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "02ab32e59019086a0ceea8db9238d6c95a6a0b381b8eb3a12565ccea7114881cfe2f2d8e5776d0ac6986f2521df3a3aa5e",
+    "certificate_sha256": "be12e64f899f35f29607ea5a109db7f595a7f6fd51c17b9d87c2cf403e5e7a0b"
+  },
+  {
+    "file": "p384-single-bit.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "single-bit-v1",
+      "start": 0,
+      "count": 384
+    },
+    "seed": 383,
+    "point": "02e3e25cdb160208b6474e2b34d72bf586bba14f72c3f97f515a405d1429196e6673161b78ad80afe664ee504d4b161ab7",
+    "certificate_sha256": "b5d506a276907b8075350681125670d10bd77f97b86995668e3bebd9f8fc38c7"
+  },
+  {
+    "file": "p384-repeat-u32be.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "repeat-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "038e3f2f0595c63f95c9c1742144d2fd016658f1bb6668be1cbe5d08a83c206cfb44f56009dd98f7f142e70738a8956648",
+    "certificate_sha256": "f61c309c1958321a754709c86ccfa7b38df83baa64cb9f315ef030ee4c9db6d5"
+  },
+  {
+    "file": "p384-prefix-u16be.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "prefix-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "03cf8e040171efe26646c102a65c902f778feed43969738eea6e9ab32d5bc7cf7333e9e07ce244fa85d235b915c27ae3a4",
+    "certificate_sha256": "e773d3ba60feda48e9acb5b152f9ef8e2480fe7056d4aae3ff178a75c90e2d9b"
+  },
+  {
+    "file": "p384-low-ones.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "low-ones-mod-order-v1",
+      "start": 0,
+      "count": 384
+    },
+    "seed": 383,
+    "point": "038e32381850a570e53d52786a71e833a22cf810c0c2d8f8414ed61004d6a8ae364a3ac516938f22508fce11b165b6bf3b",
+    "certificate_sha256": "c2ac78301ebf0e5bb9164e927eab3adea0bd64fb0f9e5956c7408291df24cfc4"
+  },
+  {
+    "file": "p384-all-ones-minus-counter.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "all-ones-minus-counter-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "023586e9064c7ffa9b5cba6a8b9ac3238f7966c8a0301a6a3c1081ba6dd4a4545105ea093d53477ff72c9f50134914b6c1",
+    "certificate_sha256": "aa34198a7b86b6647441807d9170b351c7ef6710bdc951c69ed5699208e07d36"
+  },
+  {
+    "file": "p384-clear-bit.pem",
+    "recipe": {
+      "curve": "p384",
+      "mapping": "clear-bit-mod-order-v1",
+      "start": 0,
+      "count": 384
+    },
+    "seed": 383,
+    "point": "02d13f9bd0c05b56cc30f60106a4b8e500693b9df05969cf47494d5d2c16854ef1d8692b3e09b80947f7357107616ddcb3",
+    "certificate_sha256": "0f047e4fc15fdd5a531165d0677f084bd77e441b848d423f0d2c8159f3dc7026"
+  },
+  {
+    "file": "p521-md5.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "md5",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0200d8d51664fde8813e3a0e7a34efb04005eaa36c935f92a2a0b755959c86dfbcdb658f4e4cfc5748350f4ba42c635997113b3468c8d9cc53ee8966f28cebdca7b230",
+    "certificate_sha256": "d716bce075c34038d732b9e71b3100eb8bdf849aeb9e155471c7a1eb962c0b6d"
+  },
+  {
+    "file": "p521-sha1.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha1",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03013e82d030aa30bc6802daf172de95a51315e3f1a0bdab7ce0a35adcec21947be0f3de4534994bfb0d2d4237953fdf5e0c08ef149a40f1709ffe9ec5ed22fc903c3e",
+    "certificate_sha256": "5de2217b8acc49fda9587552b2876ae923623f7aa4c1da566fc3886913148e89"
+  },
+  {
+    "file": "p521-sha224.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0201c30109a7c4b9064e8d27338b952a64f4d0a12b1446b7b034e10b65be2ce8683f94baec7056309635799bf7e8bba1536134d773fe3c19707afc7b416b54ce6e05fc",
+    "certificate_sha256": "636257a16dec47cb772fc4c567a9a3994a5725ae32873f3ff52e638ad528f2a7"
+  },
+  {
+    "file": "p521-sha256.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0300deba5020e1f19967f3b312d11d38b83fa6143eff546fa297351081ce4208587e915d74a249de1115b83f0019825c006da04346686b5351892f8f9d3bacf95abbea",
+    "certificate_sha256": "fbdc3ae3be3bcc63ba4626d9223cf880b7c3fb3dc13d932f69d4c0c491d4599e"
+  },
+  {
+    "file": "p521-sha384.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0201909956b2fd7e85384dfc959c7b09971704a4734b9cab4bfd35bf3c53c0009cd33e443f865c25d3acb13d070364fd3e6c6483fa9d55fe26dfeb885eb69207ffc2e0",
+    "certificate_sha256": "baa2c9ee9fad69ac859001d11113cfc7f9e67db9f778cf6880dc5e272b45202f"
+  },
+  {
+    "file": "p521-sha512.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "020117051c964283aefd680074e388e6f7a60d0cd80bde2c95b82c28df56978db513ae54b06153fc96f6203e5f13bfc86d01eabf422accd575eee6c16080b01b079086",
+    "certificate_sha256": "1c4116e66cd39c6da29b644c511cb753fe869590e847be583bedf6e5041c7882"
+  },
+  {
+    "file": "p521-sha512-224.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha512-224",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0301e90934c3388b2f45d725a2836a9f0385be6ff0a4b4de9ba465b1a46d9f6399db5ebcde42e445beb6ebb83300636cdd99a56dee921af3355f8b29916ed0b7ae7ed9",
+    "certificate_sha256": "07d8317d1c25a78093424dde4b53e6463874d8071eb71451036df36c15b50b3d"
+  },
+  {
+    "file": "p521-sha512-256.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha512-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03000c52a5f5975d3491d54f84c371b43532b7f89fa15f69e446f6b58af0ece0704c2c292e944c0de20672a968e48e5a526e6971276900d6bc1793160e80a91de3a17c",
+    "certificate_sha256": "1740d95163156b54daa23d69f6bbd65906f403fe57ff17d231e02a94157593db"
+  },
+  {
+    "file": "p521-sha3-256.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha3-256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0200dd015bfd6ef7cb4b4f4241e1f3414dd8392e2220f9f5758a704d761f7a1b2e53a48a2b1088319c3f500c90a012d7a595c746cbd4b7ca462e72e41cb765fe417347",
+    "certificate_sha256": "a2b4636fbc4c964ddbd04a27f3f069ec63e7c1c0b38649c47548896d3c32b81c"
+  },
+  {
+    "file": "p521-sha3-384.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha3-384",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03004bfd7cad5d568678c2e007366015a59ea1e85544c7801a37d789124c0f0096076ee69460b3452ec74cac29538bd96f3271210bd7f70def123e9cab4731d5864365",
+    "certificate_sha256": "356b6f99e04160f3b8bc268c09ad619971893288e3a3ac38890b68b63a6ce5a1"
+  },
+  {
+    "file": "p521-sha3-512.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "sha3-512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0301ef63c439dce31c273f8f39793ebe3be7caaeef3634a926f19514427f4891137035b9516c281c8b6895c38f66062d182151e1f1c88aa3b87c793ac7601e414b8396",
+    "certificate_sha256": "d9fcb0370c7656ef2a3739a8b097c28e7af0b748e9609c1ca909c7895c131141"
+  },
+  {
+    "file": "p521-blake2b512.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "blake2b512",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0300f6577fc52b488c0e2d69606e68bae8faf7aa10ded50ccc9f945bbd62be1f1d30be591efa5195fda21b45cd5ee13516389c6f16b113d1e3fe376d2f89880df13515",
+    "certificate_sha256": "2ccc213331d6e0cee9ce3890f5bcccf1e349ac9f18fc3993d8f7cfbb171c1cff"
+  },
+  {
+    "file": "p521-blake2s256.pem",
+    "recipe": {
+      "curve": "p521",
+      "hash": "blake2s256",
+      "encoding": "decimal",
+      "mapping": "digest-be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0300eefb79a6f5c4aad8b1b089744a5e30f8207fa889d750b52ad85e7f39adb48f79f8909eb2b41c160edfa050677ecf4f3fc706eb979018a6fca0e914517c70982d5f",
+    "certificate_sha256": "6111ef37e410de65638edd1e02934cbc53fbc25e9d9980a791f495a6fad4194c"
+  },
+  {
+    "file": "p521-repeat-byte.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "repeat-byte-mod-order-v1",
+      "start": 0,
+      "count": 256
+    },
+    "seed": 255,
+    "point": "02007bef212219adc9709387acfa5424dd835a8f9cb3c5f1135e80278fb750617a10d4de9f2d6a0ea7e896c519e17ab7fbcc08d6920c524e23a0c391a4c96d0844c53a",
+    "certificate_sha256": "ce8fbf974e2bf7c5e5abe63edd51caa3112bb8d8fd676308203add0ef7cb0383"
+  },
+  {
+    "file": "p521-repeat-u16be.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "repeat-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "02007bef212219adc9709387acfa5424dd835a8f9cb3c5f1135e80278fb750617a10d4de9f2d6a0ea7e896c519e17ab7fbcc08d6920c524e23a0c391a4c96d0844c53a",
+    "certificate_sha256": "61565a54f1d5303324d6d8c7a71d8a408c4980eaa20bf7f27aac3346c8f15ac7"
+  },
+  {
+    "file": "p521-prefix-u32be.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "prefix-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0200eb723cf81b07be8deec47442c9bba2c1d3a4a2883a58fcbaa5bc3b12bf64297e332f21a37364d270896e10a024626974bcd5852973a1b1c4b73f96b78ec27a1397",
+    "certificate_sha256": "6965a3ce245ef6aac3339bcaa0e5efb71b27b3c9d631786b1a187c01b650d46e"
+  },
+  {
+    "file": "p521-order-minus-counter.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "order-minus-counter-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "030091d8b8bce750e547cbf947818aadad94d36da664c9aacb20a979a75596ae60270e0c797d80f08df907eee6eeb355ff8efbfec85535866d0f901945251664248d2e",
+    "certificate_sha256": "da250329e6b2d80b8d023888fb7eaa74048424133ec8804b23bc259f7154e610"
+  },
+  {
+    "file": "p521-single-bit.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "single-bit-v1",
+      "start": 0,
+      "count": 521
+    },
+    "seed": 520,
+    "point": "02002da7db02840f023a36e1fffeaee16d3c47bb435bec6a231d4aab1ec5412f56fb90fcc4eaab9fd8571084cb9da252466c052d21913ce0fda47e61829972ce8f9a17",
+    "certificate_sha256": "443852236c51ce493dbf51f21b77a3425a49734b00db345f0be7b1d7707ed8c1"
+  },
+  {
+    "file": "p521-repeat-u32be.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "repeat-u32be-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "03009af7cfd4d3d03828fc510192ea2b0f65a866e2307bcfa189e5ceac30156f475b7b425f3aaa51bb140745fd386fe9b5873af159d644e2f5d832280d039e4bf7d473",
+    "certificate_sha256": "488f592f86cf8295be2a9bab2c1ad02679880e2412cdc4da1cc0f9ad53ba24a8"
+  },
+  {
+    "file": "p521-prefix-u16be.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "prefix-u16be-mod-order-v1",
+      "start": 0,
+      "count": 65536
+    },
+    "seed": 65535,
+    "point": "02007f5c47c65e2ab42bd23e8e5ea4821a746285667078abef815e9c030f1c2818c6926b52f933ddb2e659e6b5fffe29139b3ce37fe65686b0a179d21860e67fce1d9e",
+    "certificate_sha256": "0436f37abdaefa7f1f497ce8f50f8f9a3d9fd2311bd5f180084eff6168cbf8d7"
+  },
+  {
+    "file": "p521-low-ones.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "low-ones-mod-order-v1",
+      "start": 0,
+      "count": 521
+    },
+    "seed": 520,
+    "point": "03002d1ba273401cb466d24db945fcde24a5dbe49393dcea1d0fa8a4953113fbf7642a15ef79d8905f7a84f1b4553a2084daf2984fa7fc111470ee84970e8d981ec7c8",
+    "certificate_sha256": "988612e6569ed47d2fb33780bbbbacac4a2600a046a11d88dcb459879a8deca6"
+  },
+  {
+    "file": "p521-all-ones-minus-counter.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "all-ones-minus-counter-mod-order-v1",
+      "start": 0,
+      "count": 100000
+    },
+    "seed": 99999,
+    "point": "0200eaa5081c33580d18f8f5253a0af949e5059a1af32868135a885a0aabd3c8e86833f5e9486ab75e7a78dac54b81b8eb915458f48ff3859d09f54c811d3f86ce4682",
+    "certificate_sha256": "303fcedbaaec12e052b29e351a6e602d444b16410db49488cd156f0706b877df"
+  },
+  {
+    "file": "p521-clear-bit.pem",
+    "recipe": {
+      "curve": "p521",
+      "mapping": "clear-bit-mod-order-v1",
+      "start": 0,
+      "count": 521
+    },
+    "seed": 520,
+    "point": "02014a8d4d7e8655cdc33ff7c14528e911a38ca0b91a71caa4be5f88009dbf0c393916c39aca91098499bdf4fd4c10c6fc6eb8061932d38a93114086e5bea6f9740afe",
+    "certificate_sha256": "f99a67ebb6ca091b58d8cce16b7b33d512eb4b29ddf6cf885de32b5f1bc33231"
+  }
+]

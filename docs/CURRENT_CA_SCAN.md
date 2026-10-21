@@ -56,14 +56,11 @@ certificate DER SHA-256 fingerprints against the metadata. Source timestamps,
 hashes, per-certificate validity, record status and findings are preserved in
 the local `reports/current-ca-20261021.json` and its companion full report.
 
-```sh
-python3 scripts/check_ccadb.py \
-  --pack-dir dist/starter-100k-v1 --pack-dir dist/patterns-100k-v1 \
-  --output reports/current-ca.json
-```
-
-Use `--refresh` to replace the cached snapshot. The report's current group
-depends on the run time. This covers certificates available in this public
+The version 0.2 helper used for this run has been replaced by Rust-native
+`import-ccadb` and `check --ccadb` commands. Follow the current README to join
+the downloaded inventory and PEM reports, then run the checker against the
+unified database. Download a new snapshot to refresh the inputs. The report's
+current group depends on the run time. This covers certificates available in this public
 CCADB snapshot, not all undisclosed or private CA certificates worldwide.
 Zero findings rules out only the reported interval and exact recipes; it is
 not proof of adequate key entropy or secure random generation.

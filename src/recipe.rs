@@ -114,9 +114,27 @@ pub enum Pattern {
     PrefixU32be,
     OrderMinusCounter,
     SingleBit,
+    RepeatU32be,
+    PrefixU16be,
+    LowOnes,
+    AllOnesMinusCounter,
+    ClearBit,
 }
 
 impl Pattern {
+    pub const ALL: [Self; 10] = [
+        Self::RepeatByte,
+        Self::RepeatU16be,
+        Self::PrefixU32be,
+        Self::OrderMinusCounter,
+        Self::SingleBit,
+        Self::RepeatU32be,
+        Self::PrefixU16be,
+        Self::LowOnes,
+        Self::AllOnesMinusCounter,
+        Self::ClearBit,
+    ];
+
     pub fn mapping(self) -> &'static str {
         match self {
             Self::RepeatByte => "repeat-byte-mod-order-v1",
@@ -124,26 +142,23 @@ impl Pattern {
             Self::PrefixU32be => "prefix-u32be-mod-order-v1",
             Self::OrderMinusCounter => "order-minus-counter-v1",
             Self::SingleBit => "single-bit-v1",
+            Self::RepeatU32be => "repeat-u32be-mod-order-v1",
+            Self::PrefixU16be => "prefix-u16be-mod-order-v1",
+            Self::LowOnes => "low-ones-mod-order-v1",
+            Self::AllOnesMinusCounter => "all-ones-minus-counter-mod-order-v1",
+            Self::ClearBit => "clear-bit-mod-order-v1",
         }
     }
 
     pub fn from_mapping(mapping: &str) -> Option<Self> {
-        [
-            Self::RepeatByte,
-            Self::RepeatU16be,
-            Self::PrefixU32be,
-            Self::OrderMinusCounter,
-            Self::SingleBit,
-        ]
-        .into_iter()
-        .find(|p| p.mapping() == mapping)
+        Self::ALL.into_iter().find(|p| p.mapping() == mapping)
     }
 
     pub fn limit(self, curve: Curve) -> u64 {
         match self {
             Self::RepeatByte => 256,
-            Self::RepeatU16be => 65_536,
-            Self::SingleBit => curve.scalar_bits(),
+            Self::RepeatU16be | Self::PrefixU16be => 65_536,
+            Self::SingleBit | Self::LowOnes | Self::ClearBit => curve.scalar_bits(),
             _ => u64::from(u32::MAX) + 1,
         }
     }
@@ -160,8 +175,27 @@ impl Pattern {
             Self::RepeatU16be => BigUint::from_bytes_be(&[0, 1].repeat(size / 2)),
             Self::PrefixU32be => BigUint::from(1u8) << (8 * (size - 4)),
             Self::OrderMinusCounter => curve.order() - BigUint::from(1u8),
-            Self::SingleBit => return None,
+            Self::RepeatU32be => BigUint::from_bytes_be(&[0, 0, 0, 1].repeat(size / 4)),
+            Self::PrefixU16be => BigUint::from(1u8) << (8 * (size - 2)),
+            Self::AllOnesMinusCounter => curve.order() - BigUint::from(1u8),
+            Self::SingleBit | Self::LowOnes | Self::ClearBit => return None,
         })
+    }
+
+    /// Q(seed + 1) = (double ? 2*Q(seed) : Q(seed)) + increment*G.
+    pub fn recurrence(self, curve: Curve) -> (bool, BigUint) {
+        match self {
+            Self::SingleBit => (true, BigUint::zero()),
+            Self::LowOnes => (true, BigUint::from(1u8)),
+            Self::ClearBit => {
+                let order = curve.order();
+                let mask = ((BigUint::from(1u8) << curve.scalar_bits() as usize)
+                    - BigUint::from(1u8))
+                    % &order;
+                (true, (&order - mask) % &order)
+            }
+            _ => (false, self.multiplier(curve).expect("linear pattern")),
+        }
     }
 }
 
@@ -312,9 +346,26 @@ impl Recipe {
 
     pub fn scalar(&self, seed: u32, order: &BigUint) -> Option<BigUint> {
         let scalar = if let Some(pattern) = self.pattern() {
-            match pattern.multiplier(self.curve) {
-                Some(multiplier) => (BigUint::from(seed) * multiplier) % order,
-                None => (BigUint::from(1u8) << seed as usize) % order,
+            match pattern {
+                Pattern::AllOnesMinusCounter => {
+                    ((BigUint::from(1u8) << (8 * self.curve.scalar_bytes()))
+                        - BigUint::from(1u8)
+                        - BigUint::from(seed))
+                        % order
+                }
+                Pattern::LowOnes => {
+                    ((BigUint::from(1u8) << (seed as usize + 1)) - BigUint::from(1u8)) % order
+                }
+                Pattern::ClearBit => {
+                    ((BigUint::from(1u8) << self.curve.scalar_bits() as usize)
+                        - BigUint::from(1u8)
+                        - (BigUint::from(1u8) << seed as usize))
+                        % order
+                }
+                _ => match pattern.multiplier(self.curve) {
+                    Some(multiplier) => (BigUint::from(seed) * multiplier) % order,
+                    None => (BigUint::from(1u8) << seed as usize) % order,
+                },
             }
         } else {
             BigUint::from_bytes_be(
@@ -355,7 +406,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn patterns_match_independent_python_openssl_vectors() -> Result<()> {
+    fn patterns_match_independent_openssl_vectors() -> Result<()> {
         let vectors: serde_json::Value =
             serde_json::from_str(include_str!("../tests/pattern-vectors.json"))?;
         for vector in vectors.as_array().unwrap() {
@@ -374,11 +425,8 @@ mod tests {
 
     #[test]
     fn pattern_limits_and_recipe_fields_are_enforced() {
-        for (pattern, limit) in [
-            (Pattern::RepeatByte, 256),
-            (Pattern::RepeatU16be, 65536),
-            (Pattern::SingleBit, 521),
-        ] {
+        for pattern in Pattern::ALL {
+            let limit = pattern.limit(Curve::P521);
             let mut recipe = Recipe::patterned(Curve::P521, pattern, 0, limit);
             assert!(recipe.validate().is_ok());
             recipe.count += 1;
@@ -390,7 +438,7 @@ mod tests {
     }
 
     #[test]
-    fn recipes_match_independent_python_openssl_vectors() -> Result<()> {
+    fn recipes_match_independent_openssl_vectors() -> Result<()> {
         let vectors: serde_json::Value =
             serde_json::from_str(include_str!("../tests/recipe-vectors.json"))?;
         for vector in vectors.as_array().unwrap() {
@@ -411,7 +459,7 @@ mod tests {
     }
 
     #[test]
-    fn all_hashes_match_python_hashlib_vectors() -> Result<()> {
+    fn all_hashes_match_independent_digest_vectors() -> Result<()> {
         let vectors: serde_json::Value =
             serde_json::from_str(include_str!("../tests/digest-vectors.json"))?;
         for (name, expected) in vectors.as_object().unwrap() {

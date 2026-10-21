@@ -22,6 +22,9 @@ pub struct Certificate {
     pub issuer: String,
     pub owner: Option<String>,
     pub reported_revocation_date: Option<String>,
+    pub reported_revocation_status: Option<String>,
+    pub root_store_status: Option<String>,
+    pub record_type: Option<String>,
     pub certificate_sha256: String,
     pub spki_sha256: String,
     pub normalized_point_sha256: Option<String>,
@@ -67,7 +70,13 @@ fn certificate(
         None
     };
     let point = match curve {
-        Some(curve) => curve.canonical_point(spki.subject_public_key.data.as_ref())?,
+        Some(curve) => {
+            ensure!(
+                spki.subject_public_key.unused_bits == 0,
+                "EC public-key bit string has unused bits"
+            );
+            curve.canonical_point(spki.subject_public_key.data.as_ref())?
+        }
         None => Vec::new(),
     };
     let common_name = cert
@@ -87,6 +96,9 @@ fn certificate(
         issuer: cert.issuer().to_string(),
         owner,
         reported_revocation_date: revoked,
+        reported_revocation_status: None,
+        root_store_status: None,
+        record_type: None,
         certificate_sha256: hex::encode(Sha256::digest(der)),
         spki_sha256: hex::encode(Sha256::digest(spki.raw)),
         normalized_point_sha256: curve.map(|curve| hex::encode(point_digest(curve, &point))),
@@ -158,7 +170,11 @@ pub fn load(paths: &[PathBuf], csv_path: Option<&Path>) -> Result<Inputs> {
         let source = path.display().to_string();
         let loaded = (|| -> Result<Vec<Certificate>> {
             let bytes = fs::read(&path)?;
-            if bytes.starts_with(b"-----BEGIN") {
+            if bytes
+                .iter()
+                .position(|b| !b.is_ascii_whitespace())
+                .is_some_and(|start| bytes[start..].starts_with(b"-----BEGIN"))
+            {
                 pem_certificates(&bytes, &source)
             } else {
                 Ok(vec![certificate(&bytes, source.clone(), None, None)?])
@@ -185,6 +201,9 @@ pub fn load(paths: &[PathBuf], csv_path: Option<&Path>) -> Result<Inputs> {
         let fingerprint_column = column("SHA-256 Fingerprint")?;
         let owner_column = column("CA Owner")?;
         let revoked_column = headers.iter().position(|s| s == "Date of Revocation");
+        let status_column = headers.iter().position(|s| s == "Revocation Status");
+        let root_column = headers.iter().position(|s| s == "Status of Root Cert");
+        let type_column = headers.iter().position(|s| s == "Certificate Record Type");
         for (i, row) in csv.records().enumerate() {
             let source = format!("{}:row:{}", path.display(), i + 2);
             let parsed = (|| -> Result<Certificate> {
@@ -200,12 +219,15 @@ pub fn load(paths: &[PathBuf], csv_path: Option<&Path>) -> Result<Inputs> {
                     + "-----END CERTIFICATE-----".len();
                 let (_, pem) = x509_parser::pem::parse_x509_pem(&text.as_bytes()[start..end])
                     .map_err(|e| anyhow::anyhow!("PEM parsing: {e}"))?;
-                let cert = certificate(
+                let mut cert = certificate(
                     &pem.contents,
                     source.clone(),
                     Some(row[owner_column].to_owned()),
                     revoked_column.map(|col| row[col].to_owned()),
                 )?;
+                cert.reported_revocation_status = status_column.map(|col| row[col].to_owned());
+                cert.root_store_status = root_column.map(|col| row[col].to_owned());
+                cert.record_type = type_column.map(|col| row[col].to_owned());
                 ensure!(
                     cert.certificate_sha256
                         .eq_ignore_ascii_case(&row[fingerprint_column].replace(':', "")),
@@ -229,7 +251,7 @@ pub fn load(paths: &[PathBuf], csv_path: Option<&Path>) -> Result<Inputs> {
     Ok(inputs)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Evidence {
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -242,12 +264,28 @@ pub struct Evidence {
     pub pack_sha256: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Finding {
     pub curve: Curve,
     pub normalized_point_sha256: String,
     pub certificates: Vec<Certificate>,
     pub evidence: Vec<Evidence>,
+}
+
+#[derive(Serialize)]
+pub struct PackCoverage {
+    pub sha256: String,
+    pub header: crate::pack::Header,
+}
+
+#[derive(Serialize)]
+pub struct CurrentInventory {
+    pub certificate_count: usize,
+    pub distinct_ec_keys: usize,
+    pub unreported_root_revocation_status: usize,
+    pub with_included_root_metadata: usize,
+    pub certificates: Vec<Certificate>,
+    pub findings: Vec<Finding>,
 }
 
 #[derive(Serialize)]
@@ -258,6 +296,8 @@ pub struct Report {
     pub input_certificates: usize,
     pub supported_ec_certificates: usize,
     pub ec_certificates: Vec<Certificate>,
+    pub candidate_packs: Vec<PackCoverage>,
+    pub current_inventory: Option<CurrentInventory>,
     pub unsupported_certificates: Vec<Certificate>,
     pub distinct_ec_keys: usize,
     pub covered_distinct_ec_keys: usize,
@@ -334,13 +374,75 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
     findings.sort_by(|a, b| {
         (a.curve, &a.normalized_point_sha256).cmp(&(b.curve, &b.normalized_point_sha256))
     });
+    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    let current_inventory = inputs
+        .certificates
+        .iter()
+        .any(|c| c.reported_revocation_status.is_some())
+        .then(|| {
+            let certificates: Vec<_> = inputs
+                .certificates
+                .iter()
+                .filter(|c| {
+                    c.curve.is_some()
+                        && c.is_ca
+                        && c.not_before_unix <= now as i64
+                        && now as i64 <= c.not_after_unix
+                        && (c.reported_revocation_status.as_deref() == Some("Not Revoked")
+                            || (c.reported_revocation_status.as_deref() == Some("")
+                                && c.record_type.as_deref() == Some("Root Certificate")))
+                })
+                .cloned()
+                .collect();
+            let sources: std::collections::BTreeSet<_> =
+                certificates.iter().map(|c| c.source.as_str()).collect();
+            let current_findings = findings
+                .iter()
+                .filter_map(|f| {
+                    let certs: Vec<_> = f
+                        .certificates
+                        .iter()
+                        .filter(|c| sources.contains(c.source.as_str()))
+                        .cloned()
+                        .collect();
+                    (!certs.is_empty()).then(|| Finding {
+                        certificates: certs,
+                        ..f.clone()
+                    })
+                })
+                .collect();
+            CurrentInventory {
+                certificate_count: certificates.len(),
+                distinct_ec_keys: certificates
+                    .iter()
+                    .map(|c| &c.normalized_point_sha256)
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .len(),
+                unreported_root_revocation_status: certificates
+                    .iter()
+                    .filter(|c| c.reported_revocation_status.as_deref() == Some(""))
+                    .count(),
+                with_included_root_metadata: certificates
+                    .iter()
+                    .filter(|c| {
+                        c.root_store_status
+                            .as_deref()
+                            .is_some_and(|s| s.split(';').any(|v| v.trim().ends_with(": Included")))
+                    })
+                    .count(),
+                certificates,
+                findings: current_findings,
+            }
+        });
     Ok(Report {
         tool_version: env!("CARGO_PKG_VERSION").into(),
-        time_unix_seconds: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+        time_unix_seconds: now,
         small_scalar_max_inclusive: small_max,
         input_certificates: inputs.certificates.len(),
         supported_ec_certificates: inputs.certificates.iter().filter(|c| c.curve.is_some()).count(),
         ec_certificates: inputs.certificates.iter().filter(|c| c.curve.is_some()).cloned().collect(),
+        candidate_packs: packs.iter().map(|p| PackCoverage { sha256: p.sha256.clone(), header: p.header.clone() }).collect(),
+        current_inventory,
         unsupported_certificates: inputs.certificates.iter().filter(|c| c.curve.is_none()).cloned().collect(),
         distinct_ec_keys: keys.len(),
         covered_distinct_ec_keys: keys.keys().filter(|(c,_)| small_max > 0 || packs.iter().any(|p| p.header.recipe.curve == *c)).count(),
@@ -352,6 +454,7 @@ pub fn check(inputs: Inputs, packs: &[Pack], small_max: u32) -> Result<Report> {
             "RSA and unsupported EC curves are explicitly outside this check.".into(),
             "This does not validate certificate signatures, trust chains, expiry or live revocation status.".into(),
             "A candidate match establishes a weak-key match, not how the CA originally generated it.".into(),
+            "The current-inventory view uses validity and reported CCADB status; blank root revocation status and root-store metadata are not independent revocation or chain checks.".into(),
         ],
     })
 }

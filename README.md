@@ -1,165 +1,154 @@
 # weak-ca-check
 
-A fast, offline Rust checker for explicitly defined weak elliptic-curve keys in
-public X.509 certificates. It checks small private scalars and reusable packs of
-hash-counter candidates. It accepts certificates from any CA; it does not use a
-CA-name allowlist.
+An offline Rust tool for checking public X.509 certificates against explicitly
+defined weak elliptic-curve key candidates. One binary and one database file
+cover P-256, P-384 and P-521. Certificates can come from any CA.
 
-## Run
+## Why we are releasing this
 
-Use a precompiled binary with the starter packs, or build with Rust 1.94+:
+A certificate can contain a correctly encoded public key whose private scalar
+is a small number or comes from a predictable generator. Checking a certificate's
+signature or trust chain does not answer that question. Those weak keys can be
+tested by independently reproducing candidate public points.
+
+We started with archived CA certificates and known weak-key controls, then
+expanded the checks to the public CCADB inventory. We are releasing the checker,
+exact candidate recipes and precomputed database so other people can reproduce
+the checks, inspect the method, and test their own certificates. Precomputation
+can be shared rather than repeated by every user. The database records both
+what was searched and how to regenerate it.
+
+This is bounded research. A match establishes that the complete public key can
+be reproduced by a tested candidate. It does not establish how its owner
+originally generated the key. No match rules out only the listed recipes and
+ranges; it does not prove sufficient entropy or a secure random generator.
+The [dated CA scan report](docs/CURRENT_CA_SCAN.md) records the observed results
+and coverage limits. We do not infer earlier incidents from unrelated revocations.
+
+## Check a certificate
+
+Extract the binary for your platform and download `all-100k-v1.wkdb` alongside it:
+
+```sh
+./weak-ca-check check --cert my-ca.pem --db all-100k-v1.wkdb \
+  --output result.json
+```
+
+Repeat `--cert` for selected files, or supply a directory as a positional
+argument. PEM bundles and DER certificates are supported. Directory traversal
+searches `.pem`, `.crt`, `.cer` and `.der` files recursively, without following
+directory-entry symlinks. Supply public certificates.
+
+```sh
+./weak-ca-check check --cert first.pem --cert second.der --db all-100k-v1.wkdb
+./weak-ca-check check certificates/ --db all-100k-v1.wkdb --fail-on-match
+```
+
+The default also checks private scalars **1 through 1,000,000, inclusive** using
+baby-step giant-step. That rule needs no downloaded table. Use `--small-max 0`
+for database-only checks, or select another inclusive bound. `--threads N`
+controls worker concurrency. The checker does not contact CA services or alter
+certificates, devices or trust stores.
+
+JSON reports include certificate fingerprints, normalized public-key identifiers,
+exact evidence for matches, input errors, unsupported algorithms and every
+loaded pack's recipe, range and SHA-256. Cross-signed certificates sharing a
+public point are checked together, with their source records retained.
+
+Exit status is 0 for a completed check by default. Add `--fail-on-match` to
+return 2 when a verified match is found. Status 1 indicates an input or execution
+error and takes precedence. A successful exit is not a certificate-security
+verdict. Existing output files are protected; use `--force` to replace one.
+
+## Database coverage
+
+The default database contains **69 recipe/curve combinations**: 13 hash-counter
+families and ten scalar-pattern families on each of three curves. Hash recipes
+use decimal ASCII seeds 0–99,999. Pattern ranges are capped by their finite
+domains or the 100,000-seed limit. Inspect the actual file for exact coverage:
+
+```sh
+./weak-ca-check inspect all-100k-v1.wkdb
+./weak-ca-check recipes
+```
+
+The hashes are MD5, SHA-1, SHA-224/256/384/512, SHA-512/224 and /256,
+SHA3-256/384/512, BLAKE2b-512 and BLAKE2s-256. Legacy hashes are included to
+investigate bad key generators. Hash digests are interpreted big endian and
+reduced modulo the selected curve's group order; zero is skipped.
+
+Patterns cover repeated bytes, repeated 16-bit and 32-bit words, 16-bit and
+32-bit prefixes followed by zeros, values below the group order, values below
+an all-ones byte string, a single set bit, consecutive low one bits, and a
+single cleared bit in an all-ones scalar mask. [Exact definitions and limits](docs/PATTERNS.md)
+are part of the format. These are hypotheses, not a universal low-entropy test.
+
+A typical 100,000-seed pack uses six bytes per candidate: a three-byte lookup
+tag and a three-byte seed. Every tag hit is regenerated and compared to the
+**full public point** before a finding is reported. Truncated-tag collisions
+cannot establish findings. The unified database embeds the original packs,
+their recipes and integrity checksums. Checksums detect corruption; they do
+not authenticate a publisher or prove a third-party table is complete. Rebuild
+from the recipes to verify its contents.
+
+The [database format](docs/DATABASE.md) and [pack format](docs/FORMAT.md) are
+specified for independent implementations. Existing `.wkp` packs remain usable
+through `--pack` and `--pack-dir`; multiple `--db` inputs are also supported.
+Identical packs are deduplicated.
+
+## Build and extend
+
+Build with Rust 1.94 or later:
 
 ```sh
 cargo build --release --locked
-target/release/weak-ca-check check certificates/ --output report.json
+target/release/weak-ca-check build-db --output all-100k-v1.wkdb
 ```
 
-The default checks scalars **1 through 1,000,000, inclusive**, on P-256, P-384
-and P-521. Baby-step giant-step uses about the square root of the interval per
-distinct target key and a shared lookup per curve. There is no million-entry
-download for this rule.
+The Rust CLI builds every recipe, merges databases, imports downloaded CCADB
+data and checks certificates. No separate data-generation runtime is required.
+Structured patterns use curve-point recurrences and batch normalization;
+hash-counter generation parallelizes independent public-key derivations.
 
-Add the extracted starter pack directory:
+Select a smaller suite, different range or additional seed encodings:
 
 ```sh
-weak-ca-check check --pack-dir starter-100k-v1 certificates/ --output report.json
+./weak-ca-check build-db --suite patterns --curve p384 --count 1000000 \
+  --output patterns-p384-1m.wkdb
+./weak-ca-check build-db --suite hashes --curve p384 --hash sha256 \
+  --encoding u32le --count 100000 --output sha256-u32le.wkdb
+./weak-ca-check merge-db --db all-100k-v1.wkdb --db sha256-u32le.wkdb \
+  --output combined.wkdb
 ```
 
-Paths may be PEM bundles, DER certificates, or directories searched recursively
-for `.pem`, `.crt`, `.cer` and `.der` files. Directory traversal does not follow
-symlinks. Supply public certificates, rather than private-key files. Cross-signed
-certificates sharing one public point are checked once, while their fingerprints
-and source records remain in the finding.
-
-To test one specific certificate, use the explicit `--cert` option (also
-available as `--certificate`). Repeat it to test several chosen files:
-
-```sh
-weak-ca-check check --cert my-ca.pem --pack-dir starter-100k-v1 \
-  --pack-dir patterns-100k-v1 --fail-on-match --output result.json
-```
-
-This checks the default million-scalar interval plus both pack directories.
-Use `--small-max 0` to select only the supplied packs. The JSON contains exact
-recipe/seed evidence for matches and a per-certificate EC inventory, including
-validity timestamps and normalized public-point identifiers.
-
-For a downloaded CCADB revoked-intermediate CSV:
-
-```sh
-weak-ca-check check --ccadb revoked-intermediates.csv \
-  --pack-dir starter-100k-v1 --output report.json
-```
-
-The CSV loader verifies each parsed certificate against the CSV SHA-256
-fingerprint. Missing PEM fields and malformed records are reported as input
-errors and produce exit status 1. RSA and other unsupported curves are listed
-separately; they are not counted as checked EC keys. The checker does not fetch
-network resources or modify trust stores, routers or certificates.
-
-Use `--small-max 0` for pack-only checks. Repeat `--pack FILE` or
-`--pack-dir DIRECTORY` for multiple inputs. `--threads N` controls parallelism.
-`--fail-on-match` returns 2 for verified findings, allowing CI to reject weak
-keys. Exit status 1 takes precedence when an input error occurs; otherwise the
-default exit status is 0 even when the JSON contains findings.
-
-## Starter packs and custom recipes
-
-The `starter-100k-v1` set contains **39 packs**: 13 hash functions on each of three
-curves, with decimal ASCII seeds **0 through 99,999**. Each pack occupies about
-600 KB; the complete record payload is 23.4 MB. The supported hashes are MD5,
-SHA-1, SHA-224/256/384/512, SHA-512/224 and /256, SHA3-256/384/512, BLAKE2b-512
-and BLAKE2s-256. Weak legacy hashes are included to investigate bad generators.
-
-Each recipe hashes the encoded seed, interprets the digest as a big-endian
-integer, reduces it modulo the curve order, skips zero, and derives the public
-point. The complete recipe is embedded in the pack. These 13 hashes are an
-explicit supported set; they do not represent every hash function or generator.
-
-```sh
-weak-ca-check generate --curve p384 --hash sha256 --encoding decimal \
-  --start 0 --count 100000 --output p384-sha256-decimal-0-99999.wkp
-weak-ca-check inspect p384-sha256-decimal-0-99999.wkp
-weak-ca-check recipes
-```
-
-Generate the full starter set from source, with Python's standard library:
-
-```sh
-python3 scripts/build_starter.py
-```
-
-The default output is `dist/starter-100k-v1/`, including a manifest and SHA-256
-checksums. Build one million seeds with `--count 1000000`, or partition ranges
-with `--start` and `--count`. Other encodings are `u32be`, `u32le`, `u64be` and
-`u64le`. Changing an encoding or scalar mapping changes which keys are covered.
-The builder currently keeps a pack's records in memory; partition large ranges
-to limit memory. Packs are release assets and are excluded from Git history.
-
-## Fast pattern generators
-
-Version 0.2 adds five scalar pattern families: repeated bytes, repeated 16-bit
-words, a 32-bit prefix followed by zeros, values just below the group order,
-and a single set bit. These generators use point additions or doublings and
-batch normalization. They avoid a separate full scalar multiplication for
-every candidate. All lookup hits still require full-point verification.
-
-```sh
-weak-ca-check generate-pattern --curve p384 --pattern prefix-u32be \
-  --count 1000000 --output prefix-p384-1m.wkp
-weak-ca-check check --cert my-ca.pem --pack prefix-p384-1m.wkp
-python3 scripts/build_patterns.py
-```
-
-The pattern builder produces 15 packs in `dist/patterns-100k-v1`, about 4.6 MB.
-It covers the complete repeated-byte, repeated-word and single-bit domains;
-the prefix and order-minus-counter families use seeds 0–99,999 by default.
-Use `--counter-count 1000000 --output dist/patterns-1m-v1` for wider counter
-ranges. [Pattern definitions and limits](docs/PATTERNS.md) specify every mapping.
+Repeat `--curve`, `--hash`, `--encoding` or `--pattern` to select combinations.
+Binary seed encodings are `u32be`, `u32le`, `u64be` and `u64le`; decimal is the
+default. Changing an encoding changes the searched keys. `--count` limits seeds
+per recipe. The builder and checker keep selected packs in memory; use smaller
+databases and separate checks when memory is limited. Single-pack `generate` and `generate-pattern`
+commands support explicit `--start` and `--count` intervals.
 
 ## Check the public CA inventory
 
-The following helper downloads and caches the official CCADB root/intermediate
-inventory and certificate PEM reports, joins them by SHA-256 fingerprint, then
-invokes the offline Rust checker:
+Download the V5 inventory and PEM reports from the [official CCADB resource index](https://www.ccadb.org/resources).
+The example uses all issuance decades present in the recorded 2026 snapshot:
 
 ```sh
-python3 scripts/check_ccadb.py --pack-dir dist/starter-100k-v1 \
-  --pack-dir dist/patterns-100k-v1 --output reports/current-ca.json
+./weak-ca-check import-ccadb --inventory inventory-v5.csv \
+  --pem pems-1990.csv --pem pems-2000.csv --pem pems-2010.csv --pem pems-2020.csv \
+  --output joined.csv
+./weak-ca-check check --ccadb joined.csv --db all-100k-v1.wkdb --output ca-report.json
 ```
 
-The summary separates time-valid CA certificates without reported revocation
-from historical records. It preserves source hashes, missing-certificate
-errors and a full report. Blank root revocation fields are disclosed separately.
-Root-store metadata is not a chain validation. The download covers CCADB's
-public inventory rather than every private or undisclosed CA worldwide.
-Cached files are reused; `--refresh` fetches a new snapshot.
+The importer joins on SHA-256 fingerprint; the checker verifies each parsed
+certificate's fingerprint. Missing PEMs and malformed inputs remain explicit
+errors. The JSON `current_inventory` view uses exact certificate validity and
+reported CCADB revocation status. Blank root revocation fields are counted and
+disclosed separately. Included-root metadata does not establish a verified
+chain. This inventory covers disclosed public records, rather than every
+private CA worldwide.
 
-## Compact lookup with exact verification
-
-A default record contains a **3-byte lookup tag plus a 3-byte seed** for the
-100,000-seed range. The checker binary-searches the sorted tags, regenerates
-every matching candidate, then compares the **full public point**. A truncated
-tag alone never establishes a finding. Packs include corruption checksums;
-rebuilding from the embedded recipe verifies their contents. Checksums alone
-do not authenticate a publisher. [The format specification](docs/FORMAT.md)
-defines the encoding and collision behavior.
-
-## What a result establishes
-
-A finding means the certificate's full public key exactly matches a tested
-small scalar or recipe candidate. It does not establish the original key
-generation procedure. A negative result rules out only the reported interval
-and recipes; it does **not** prove high entropy, secure randomness, or absence
-of another predictable generator. Entropy cannot be measured from one public
-point by this lookup.
-
-This is a public-key weakness check. It does not validate certificate signatures,
-trust chains, expiry, or current revocation status. Revocation dates in CSV
-results are reported source metadata. RSA key weaknesses and ECDSA nonce or
-signature weaknesses require different checks.
-
-## Validation and performance
+## Validation and scope
 
 ```sh
 cargo fmt --check
@@ -167,20 +156,18 @@ cargo clippy --locked --all-targets -- -D warnings
 cargo test --release --locked
 ```
 
-Tests cover independent Python/OpenSSL point vectors, all 13 hash digest
-vectors, every supported curve, inclusive interval boundaries, pack corruption,
-variable record widths, cross-signature deduplication and deliberate tag
-collisions. For an independent end-to-end test of every distributed recipe,
-install Python `cryptography>=45` in a test environment, then run:
+The Rust tests include independent OpenSSL public-point and digest vectors,
+69 synthetic public certificate fixtures, database round trips, corruption,
+deduplication, record widths, recurrence chunk boundaries, interval endpoints,
+CCADB joins, output preservation and the certificate CLI. Tests run offline
+and require no external crypto executable or private-key files.
 
-```sh
-python3 scripts/verify_reference.py
-```
+This tool checks public-key candidates. Certificate signature verification,
+chain building, expiry enforcement, live revocation, RSA weaknesses and ECDSA
+nonce weaknesses are outside its verdict. Unsupported algorithms are reported
+separately and are not counted as covered EC keys.
 
-It constructs temporary synthetic public test certificates using Python/OpenSSL
-at the final seed of each pack and checks the Rust CLI's exact findings. It
-does not write private-key files or install certificates.
-
-See [measured results and dataset coverage](docs/BENCHMARKS.md). Source code and
-documentation are MIT licensed; public certificate fixtures retain their
-issuers' ownership.
+Source code and documentation are MIT licensed. Synthetic fixtures are included
+for reproducibility; third-party CA certificate fixtures retain their issuers'
+ownership. Binary releases include dependency license notices. Measurements
+and platform-validation limits are recorded in [the benchmark notes](docs/BENCHMARKS.md).
