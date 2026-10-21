@@ -30,6 +30,14 @@ The goal is to make those checks easy to run and easy to extend. Build a table
 once, then use it to check a single certificate or a whole collection. It works
 with certificates from any CA, or your own test certificates.
 
+## How it was built
+
+We gave [**Operator Develop**](https://askus.li/operator) the idea and the
+objective: make it easy to check certificates for low-entropy keys using
+reusable lookup tables. We then used
+[**Operator Review**](https://askus.li/operator) to look for errors and ways to
+improve performance, and used its findings to improve the code.
+
 ## Try a known weak test certificate
 
 Requires Rust 1.94 or later. From the repository directory, this example builds
@@ -161,13 +169,6 @@ RSA keys or ECDSA signing nonces.
 the private key. The database and its manifest can also help recover matching
 keys. This repository is private; the generated database and full scan reports
 remain local. See the [distribution notice](docs/RELEASE_NOTICE.md).
-
-## How it was built
-
-We gave [**Operator Develop**](https://askus.li/operator) the idea and the objective: make it easy to check
-certificates for low-entropy keys using reusable lookup tables. We then used
-[**Operator Review**](https://askus.li/operator) to look for errors and ways to improve performance, and
-used its findings to improve the code.
 
 ## More details
 
