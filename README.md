@@ -162,6 +162,13 @@ the private key. The database and its manifest can also help recover matching
 keys. This repository is private; the generated database and full scan reports
 remain local. See the [distribution notice](docs/RELEASE_NOTICE.md).
 
+## How it was built
+
+We gave **Operator Develop** the idea and the objective: make it easy to check
+certificates for low-entropy keys using reusable lookup tables. We then used
+**Operator Review** to look for errors and ways to improve performance, and
+used its findings to improve the code.
+
 ## More details
 
 - [Full CA scan results and coverage](docs/CURRENT_CA_SCAN.md)
