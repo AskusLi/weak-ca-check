@@ -30,6 +30,30 @@ The goal is to make those checks easy to run and easy to extend. Build a table
 once, then use it to check a single certificate or a whole collection. It works
 with certificates from any CA, or your own test certificates.
 
+## Try a known weak test certificate
+
+Requires Rust 1.94 or later. From the repository directory, this example builds
+256 candidates and checks a synthetic certificate included in the repository:
+
+```sh
+cargo build --release --locked
+./target/release/weak-ca-check build-db --suite hashes \
+  --curve p384 --hash sha256 --seed-pattern repeat-byte \
+  --output dist/demo.wkdb
+./target/release/weak-ca-check check --small-max 0 --db dist/demo.wkdb \
+  --cert tests/seed-pattern-fixtures/seed-pattern-repeat-byte-p384.pem \
+  --output reports/demo.json --fail-on-match
+```
+
+The check should find one match and exit with status **2**. The test suite
+covers this path too:
+
+```sh
+cargo fmt --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --release --locked
+```
+
 ## Build and run
 
 Requires Rust 1.94 or later. Run these commands from the repository directory:
@@ -118,29 +142,6 @@ You can also select curves, hashes, seed patterns and direct key patterns.
 `recipes` lists the choices; `build-db --help` lists the options. Multiple
 databases can be checked together with repeated `--db` arguments, or combined
 with `merge-db`.
-
-## Try a known weak test certificate
-
-This small example builds 256 candidates and checks a synthetic certificate
-included in the repository:
-
-```sh
-./target/release/weak-ca-check build-db --suite hashes \
-  --curve p384 --hash sha256 --seed-pattern repeat-byte \
-  --output dist/demo.wkdb
-./target/release/weak-ca-check check --small-max 0 --db dist/demo.wkdb \
-  --cert tests/seed-pattern-fixtures/seed-pattern-repeat-byte-p384.pem \
-  --output reports/demo.json --fail-on-match
-```
-
-The check should find one match and exit with status **2**. The test suite
-covers this path too:
-
-```sh
-cargo fmt --check
-cargo clippy --locked --all-targets -- -D warnings
-cargo test --release --locked
-```
 
 ## Reading the results
 
