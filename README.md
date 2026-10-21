@@ -164,9 +164,9 @@ remain local. See the [distribution notice](docs/RELEASE_NOTICE.md).
 
 ## How it was built
 
-We gave **Operator Develop** the idea and the objective: make it easy to check
+We gave [**Operator Develop**](https://askus.li/operator) the idea and the objective: make it easy to check
 certificates for low-entropy keys using reusable lookup tables. We then used
-**Operator Review** to look for errors and ways to improve performance, and
+[**Operator Review**](https://askus.li/operator) to look for errors and ways to improve performance, and
 used its findings to improve the code.
 
 ## More details
